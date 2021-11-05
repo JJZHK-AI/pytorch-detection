@@ -10,7 +10,7 @@
 import os
 import numpy as np
 from jjzhk.config import DetectConfig
-from alive_progress import alive_bar
+from jjzhk.progressbar import ProgressBar
 
 
 class EvalObj:
@@ -25,19 +25,19 @@ class EvalObj:
         all_boxes = [[[] for _ in range(len(loader))]
                      for _ in range(len(self.cfg['class_info'].keys()) + 1)]
         infos = []
-        self.barCfg['total'] = len(loader)
-        with alive_bar(title_length=20, title="Detection", **self.barCfg) as bar:
-            for i, sampler in enumerate(loader):
-                images, targets, info = sampler['img'], sampler['annot'], sampler['info']
-                detections = self.model.get_detections(images, detector=detector)
+        bar = ProgressBar(1, len(loader), "")
+        for i, sampler in enumerate(loader):
+            images, targets, info = sampler['img'], sampler['annot'], sampler['info']
+            detections = self.model.get_detections(images, detector=detector)
 
-                image_eval_boxes = self.model.get_eval_predictions(info, detections)
+            image_eval_boxes = self.model.get_eval_predictions(info, detections)
 
-                for j, box in enumerate(image_eval_boxes):
-                    all_boxes[j][i] = box
+            for j, box in enumerate(image_eval_boxes):
+                all_boxes[j][i] = box
 
-                infos.append(info[0])
-                bar()
+            infos.append(info[0])
+            bar.show(1)
+
         print("calculating mAP...")
         return loader.dataset.evaluate_detections(all_boxes, output_path, infos)
 

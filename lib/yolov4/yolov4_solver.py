@@ -14,10 +14,15 @@ from jjzhk.device import device
 from lib.utils.solver import Solver
 import torch.utils.model_zoo
 import lib.yolov4 as y
-import lib.model as m
+import glob
 import cv2
+from pathlib import Path
 from jjzhk.drawseg import BaseDrawSeg
 from lib.yolov4.darknet import Darknet
+from jjzhk.progressbar import ProgressBar
+import json
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
 
 
 class YOLOV4Solver(Solver):
@@ -102,8 +107,57 @@ class YOLOV4Solver(Solver):
             print('%s Done' % s)
 
     def eval_epoch(self, epoch, model):
+        seen = 0
+        jdict = []
+        bar = ProgressBar(1, len(self._eval_loader_), "")
+
         for index, (image, targets, info, shapes) in enumerate(self._eval_loader_):
-            index = index
+            img = image.to(device, non_blocking=True)
+            img = img.float()
+            img /= 255
+            targets = targets.to(device)
+            nb, _, height, width = img.shape
+            whwh = torch.Tensor([width, height, width, height]).to(device)
+
+            with torch.no_grad():
+                inf_out, train_out = self.model(img, augment=False)
+                output = y.non_max_suppression(inf_out, conf_thres=self.cfg['base']['conf_threshold'],
+                                               iou_thres=self.cfg['base']['iou_threshold'])
+
+            for si, pred in enumerate(output):
+                path = Path(info[si]['path'])
+                labels = targets[targets[:, 0] == si, 1:]
+                nl = len(labels)
+                tcls = labels[:, 0].tolist() if nl else []  # target class
+                seen += 1
+                y.clip_coords(pred, (height, width))
+                image_id = int(path.stem) if path.stem.isnumeric() else path.stem
+                box = pred[:, :4].clone()  # xyxy
+                y.scale_coords(img[si].shape[1:], box, shapes[si][0], shapes[si][1])  # to original shape
+                box = y.xyxy2xywh(box)  # xywh
+                box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
+                for p, b in zip(pred.tolist(), box.tolist()):
+                    jdict.append({'image_id': image_id,
+                                  'category_id': self.cfg.converse_transfer_to_id(int(p[5])),
+                                  'bbox': [round(x, 3) for x in b],
+                                  'score': round(p[4], 5)})
+
+            bar.show(1)
+
+        anno_json = glob.glob(os.path.join(self.cfg['dataset']['root'], "annotations", "instances_val2017.json"))[0]
+        pred_json = os.path.join(self._eval_path_, "predictions.json")
+        with open(pred_json, 'w') as f:
+            json.dump(jdict, f)
+
+        anno = COCO(anno_json)
+        pred = anno.loadRes(pred_json)
+        eval = COCOeval(anno, pred, 'bbox')
+        eval.params.imgIds = [int(Path(x).stem) for x in self._eval_dataset_.img_files]  # image IDs to evaluate
+        eval.evaluate()
+        eval.accumulate()
+        eval.summarize()
+        map, map50 = eval.stats[:2]
+        self.logger.save_eval(0, map)
 
     def get_train_parameters(self) -> list:
         pass

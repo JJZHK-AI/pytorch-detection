@@ -125,7 +125,7 @@ class SSDSolver(Solver):
         mAP, info = eval_model.calculateMAP(self._eval_loader_,
                                             os.path.join(self._eval_path_, str(epoch)),
                                             detector=self.detector)
-        self.logger.logger("epoch %d - mAP : %.3f" % (epoch, mAP), phase='e')
+        self.logger.save_eval(epoch, mAP)
 
         headers = ['class name', 'AP']
         table = []

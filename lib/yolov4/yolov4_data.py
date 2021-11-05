@@ -70,7 +70,7 @@ class YoloV4DataSet(DataSetBase):
             labels_out = torch.zeros((0, 6))
             img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
             img = np.ascontiguousarray(img)
-            return img, labels_out, info, shapes
+            return torch.from_numpy(img), labels_out, info, shapes
 
         elif self.phase == 'test':
             self.auto_size = 32
