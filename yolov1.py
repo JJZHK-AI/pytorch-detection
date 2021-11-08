@@ -20,7 +20,7 @@ from lib.yolov1.loss import yoloLoss
 from jjzhk.progressbar import ProgressBar
 from jjzhk.logger import Logger
 
-ROOT = "/input/" #"/Users/jjzhk/data/"
+ROOT = "/" #"/Users/jjzhk/data/"
 learning_rate = 0.001
 num_epochs = 50
 batch_size = 24
