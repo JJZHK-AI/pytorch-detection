@@ -79,11 +79,12 @@ class yoloLoss(nn.Module):
         noo_target = target_tensor[noo_mask].view(-1, 30)
         noo_pred_mask = torch.ByteTensor(noo_pred.size()).to(device)
         noo_pred_mask.zero_()
-        noo_pred_mask[:, 4] = 1;
+        noo_pred_mask[:, 4] = 1
         noo_pred_mask[:, 9] = 1
+        noo_pred_mask = noo_pred_mask.bool()
         noo_pred_c = noo_pred[noo_pred_mask]  # noo pred只需要计算 c 的损失 size[-1,2]
         noo_target_c = noo_target[noo_pred_mask]
-        nooobj_loss = F.mse_loss(noo_pred_c, noo_target_c, size_average=False)
+        nooobj_loss = F.mse_loss(noo_pred_c, noo_target_c, reduction='sum')
 
         # compute contain obj loss
         coo_response_mask = torch.ByteTensor(box_target.size()).to(device)
@@ -115,23 +116,25 @@ class yoloLoss(nn.Module):
             box_target_iou[i + max_index, torch.LongTensor([4]).to(device)] = (max_iou).data.to(device)
         box_target_iou = Variable(box_target_iou).to(device)
         # 1.response loss
+        coo_response_mask = coo_response_mask.bool()
         box_pred_response = box_pred[coo_response_mask].view(-1, 5)
         box_target_response_iou = box_target_iou[coo_response_mask].view(-1, 5)
         box_target_response = box_target[coo_response_mask].view(-1, 5)
-        contain_loss = F.mse_loss(box_pred_response[:, 4], box_target_response_iou[:, 4], size_average=False)
-        loc_loss = F.mse_loss(box_pred_response[:, :2], box_target_response[:, :2], size_average=False) + F.mse_loss(
-            torch.sqrt(box_pred_response[:, 2:4]), torch.sqrt(box_target_response[:, 2:4]), size_average=False)
+        contain_loss = F.mse_loss(box_pred_response[:, 4], box_target_response_iou[:, 4], reduction='sum')
+        loc_loss = F.mse_loss(box_pred_response[:, :2], box_target_response[:, :2], reduction='sum') + F.mse_loss(
+            torch.sqrt(box_pred_response[:, 2:4]), torch.sqrt(box_target_response[:, 2:4]), reduction='sum')
         # 2.not response loss
+        coo_not_response_mask = coo_not_response_mask.bool()
         box_pred_not_response = box_pred[coo_not_response_mask].view(-1, 5)
         box_target_not_response = box_target[coo_not_response_mask].view(-1, 5)
         box_target_not_response[:, 4] = 0
-        # not_contain_loss = F.mse_loss(box_pred_response[:,4],box_target_response[:,4],size_average=False)
+        # not_contain_loss = F.mse_loss(box_pred_response[:,4],box_target_response[:,4],reduction='sum')
 
         # I believe this bug is simply a typo
-        not_contain_loss = F.mse_loss(box_pred_not_response[:, 4], box_target_not_response[:, 4], size_average=False)
+        not_contain_loss = F.mse_loss(box_pred_not_response[:, 4], box_target_not_response[:, 4], reduction='sum')
 
         # 3.class loss
-        class_loss = F.mse_loss(class_pred, class_target, size_average=False)
+        class_loss = F.mse_loss(class_pred, class_target, reduction='sum')
 
         return (
                            self.l_coord * loc_loss + 2 * contain_loss + not_contain_loss + self.l_noobj * nooobj_loss + class_loss) / N

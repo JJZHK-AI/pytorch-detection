@@ -162,7 +162,7 @@ class ResNet(torch.nn.Module):
         # x = self.fc(x)
         x = self.conv_end(x)
         x = self.bn_end(x)
-        x = F.sigmoid(x)  # 归一化到0-1
+        x = torch.sigmoid(x)  # 归一化到0-1
         # x = x.view(-1,7,7,30)
         x = x.permute(0, 2, 3, 1)  # (-1,7,7,30)
 
