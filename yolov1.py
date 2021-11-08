@@ -87,7 +87,7 @@ for epoch in range(1, num_epochs + 1):
         loss.backward()
         optimizer.step()
 
-        bar.show(index, loss.item(), total_loss / (index + 1))
+        bar.show(epoch, loss.item(), total_loss / (index + 1))
 
     logger.info("epoch {epoch}: lr-{lr}", epoch=epoch, lr=learning_rate)
     torch.save(net.state_dict(), "%d.pth" % epoch)
