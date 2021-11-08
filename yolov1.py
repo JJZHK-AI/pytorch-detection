@@ -29,9 +29,7 @@ resnet = torchvision.models.resnet50(pretrained=True)
 new_state_dict = resnet.state_dict()
 dd = net.state_dict()
 for k in new_state_dict.keys():
-    print(k)
     if k in dd.keys() and not k.startswith('fc'):
-        print('yes')
         dd[k] = new_state_dict[k]
 net.load_state_dict(dd)
 net.to(device)
