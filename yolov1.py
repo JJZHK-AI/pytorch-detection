@@ -20,6 +20,7 @@ from lib.yolov1.loss import yoloLoss
 from jjzhk.progressbar import ProgressBar
 from jjzhk.logger import Logger
 
+ROOT = "/input/" #"/Users/jjzhk/data/"
 learning_rate = 0.001
 num_epochs = 50
 batch_size = 24
@@ -48,7 +49,7 @@ optimizer = torch.optim.SGD(params, lr=learning_rate, momentum=0.9, weight_decay
 
 config = DetectConfig("cfg")
 config.loadfile("voc.cfg")
-config['dataset']['root'] = os.path.join("/Users/jjzhk/data/", config['dataset']['root'])
+config['dataset']['root'] = os.path.join(ROOT, config['dataset']['root'])
 train_dataset = VOCDetection(config, phase="train")
 train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=batch_size,shuffle=True,num_workers=0)
 # test_dataset = yoloDataset(root=file_root,list_file='voc07_test.txt',train=False,transform = [transforms.ToTensor()] )
