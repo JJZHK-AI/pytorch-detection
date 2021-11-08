@@ -63,7 +63,7 @@ best_test_loss = np.inf
 criterion = yoloLoss(7,2,5,0.5)
 bar = ProgressBar(num_epochs, len(train_loader), "Loss: %.4f, average_loss: %.4f")
 logger = Logger(output="logs", logger_name="yolov1", handlers='f',formatter="")
-for epoch in range(num_epochs):
+for epoch in range(1, num_epochs + 1):
     net.train()
     if epoch == 30:
         learning_rate=0.0001
