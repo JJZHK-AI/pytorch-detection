@@ -25,7 +25,7 @@ from lib.yolov1.utils import decoder
 from jjzhk.drawseg import BaseDrawSeg
 
 phase = 'train'
-ROOT = "/Users/jjzhk/data/"
+ROOT = "/" #"/Users/jjzhk/data/"
 learning_rate = 0.001
 num_epochs = 50
 batch_size = 24
