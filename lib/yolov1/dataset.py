@@ -27,11 +27,11 @@ class YoloV1Detection(DataSetBase):
     def get_item(self, index):
         # target [[label, left, top, right, bottom]]
         img, target = self.dataset.find_item(index)
-        target = np.asarray(target)
-        labels = torch.Tensor(target[:, 0])
-        boxes = torch.Tensor(target[:, 1:])
         info = self.dataset.get_item_info(index)
         if self.phase == 'train':
+            target = np.asarray(target)
+            labels = torch.Tensor(target[:, 0])
+            boxes = torch.Tensor(target[:, 1:])
             img, boxes = random_flip(img, boxes)
             img, boxes = randomScale(img, boxes)
             img = randomBlur(img)
@@ -41,16 +41,27 @@ class YoloV1Detection(DataSetBase):
             img, boxes, labels = randomShift(img, boxes, labels)
             img, boxes, labels = randomCrop(img, boxes, labels)
 
-        h, w, _ = img.shape
-        boxes /= torch.Tensor([w, h, w, h]).expand_as(boxes)
-        img = BGR2RGB(img)  # because pytorch pretrained model use RGB
-        img = subMean(img, self.mean)  # 减去均值
-        img = cv2.resize(img, (self.image_size, self.image_size))
-        target = self.encoder(boxes, labels)  # 7x7x30
-        for t in self.transform:
-            img = t(img)
+            h, w, _ = img.shape
+            boxes /= torch.Tensor([w, h, w, h]).expand_as(boxes)
+            img = BGR2RGB(img)  # because pytorch pretrained model use RGB
+            img = subMean(img, self.mean)  # 减去均值
+            img = cv2.resize(img, (self.image_size, self.image_size))
+            target = self.encoder(boxes, labels)  # 7x7x30
+            for t in self.transform:
+                img = t(img)
+            return img, target
+        elif self.phase == 'eval':
+            pass
+        else:
+            h, w, _ = img.shape
+            img = cv2.resize(img, (448, 448))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            mean = (123, 117, 104)  # RGB
+            img = img - np.array(mean, dtype=np.float32)
 
-        return img, target
+            transform = tv.transforms.Compose([tv.transforms.ToTensor(), ])
+            img = transform(img)
+            return img, info
 
     def encoder(self,boxes,labels):
         '''
@@ -58,7 +69,7 @@ class YoloV1Detection(DataSetBase):
         labels (tensor) [...]
         return 7x7x30
         '''
-        grid_num = 14
+        grid_num = 7
         target = torch.zeros((grid_num,grid_num,30))
         cell_size = 1./grid_num
         wh = boxes[:,2:]-boxes[:,:2]
