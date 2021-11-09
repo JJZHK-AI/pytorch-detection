@@ -207,10 +207,10 @@ class ResNet50(torch.nn.Module):
 
         self.conv1 = torch.nn.Conv2d(2048, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         self.bn1 = torch.nn.BatchNorm2d(1024)
-        self.relu1 = torch.nn.ReLU(inplace=True)
+        self.relu1 = torch.nn.LeakyReLU(negative_slope=0.1)
         self.conv2 = torch.nn.Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1))
         self.bn2 = torch.nn.BatchNorm2d(512)
-        self.relu2 = torch.nn.ReLU(inplace=True)
+        self.relu2 = torch.nn.LeakyReLU(negative_slope=0.1)
         self.maxpool = torch.nn.MaxPool2d(kernel_size=(3,3), stride=(2,2), padding=(1,1))
         self.conv3 = torch.nn.Conv2d(512, 30, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
 
