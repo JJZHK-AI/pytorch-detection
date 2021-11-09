@@ -14,34 +14,33 @@ import torch.utils.data
 import torchvision
 from jjzhk.config import DetectConfig
 from jjzhk.device import device
+from jjzhk.drawseg import BaseDrawSeg
 from jjzhk.logger import Logger
 from jjzhk.progressbar import ProgressBar
 
 from lib.yolov1.dataset import VOCDetection
 from lib.yolov1.loss import yoloLoss
-from lib.yolov1.model import resnet50
+from lib.yolov1.model import resnet50, ResNet50
 from lib.yolov1.utils import decoder
-
-from jjzhk.drawseg import BaseDrawSeg
 
 phase = 'train'
 ROOT = "/" #"/Users/jjzhk/data/"
 learning_rate = 0.001
 num_epochs = 50
 batch_size = 24
-net = resnet50() #
+net = ResNet50() #resnet50() #
 config = DetectConfig("cfg")
 config.loadfile("voc.cfg")
 config['dataset']['root'] = os.path.join(ROOT, config['dataset']['root'])
 
 if phase == 'train':
-    resnet = torchvision.models.resnet50(pretrained=True)
-    new_state_dict = resnet.state_dict()
-    dd = net.state_dict()
-    for k in new_state_dict.keys():
-        if k in dd.keys() and not k.startswith('fc'):
-            dd[k] = new_state_dict[k]
-    net.load_state_dict(dd)
+    # resnet = torchvision.models.resnet50(pretrained=True)
+    # new_state_dict = resnet.state_dict()
+    # dd = net.state_dict()
+    # for k in new_state_dict.keys():
+    #     if k in dd.keys() and not k.startswith('fc'):
+    #         dd[k] = new_state_dict[k]
+    # net.load_state_dict(dd)
     net.to(device)
 
     net.train()

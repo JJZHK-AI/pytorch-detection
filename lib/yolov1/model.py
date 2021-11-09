@@ -181,3 +181,56 @@ def resnet50(pretrained=False, **kwargs):
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
     return model
+
+
+class ResNet50(torch.nn.Module):
+    def __init__(self):
+        super(ResNet50, self).__init__()
+        model = tv.models.resnet50(pretrained=True)
+        self.model_layers = [
+            model.conv1, model.bn1, model.relu, model.maxpool,
+            model.layer1, model.layer2, model.layer3
+        ] # 1, 1024, 28, 28
+
+        self.backbone = torch.nn.ModuleList()
+        self.extra = torch.nn.ModuleList()
+
+        for layer in self.model_layers:
+            self.backbone.append(layer)
+
+        extra = [
+            torch.nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
+
+            torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
+            torch.nn.Conv2d(512, 1024, kernel_size=(3, 3), padding=(1, 1)),
+            torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
+            torch.nn.Conv2d(512, 1024, kernel_size=(3, 3), padding=(1, 1)),
+            torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1)),
+            torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+
+            torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1)),
+            torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1))
+        ]
+
+        for layer in extra:
+            self.extra.append(layer)
+
+        self.conv1 = torch.nn.Conv2d(1024, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv2 = torch.nn.Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.conv3 = torch.nn.Conv2d(256, 30, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+
+    def forward(self, x):
+        output = x
+        for layer in self.backbone:
+            output = layer(output)
+            # print(output.shape)
+
+        for layer in self.extra:
+            output = layer(output)
+            # print(output.shape)
+        output = self.conv1(output)
+        output = self.conv2(output)
+        output = self.conv3(output)
+        output = output.permute(0, 2, 3, 1)
+
+        return output
