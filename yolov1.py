@@ -34,13 +34,13 @@ config.loadfile("voc.cfg")
 config['dataset']['root'] = os.path.join(ROOT, config['dataset']['root'])
 
 if phase == 'train':
-    # resnet = torchvision.models.resnet50(pretrained=True)
-    # new_state_dict = resnet.state_dict()
-    # dd = net.state_dict()
-    # for k in new_state_dict.keys():
-    #     if k in dd.keys() and not k.startswith('fc'):
-    #         dd[k] = new_state_dict[k]
-    # net.load_state_dict(dd)
+    resnet = torchvision.models.resnet50(pretrained=True)
+    new_state_dict = resnet.state_dict()
+    dd = net.state_dict()
+    for k in new_state_dict.keys():
+        if k in dd.keys() and not k.startswith('fc'):
+            dd[k] = new_state_dict[k]
+    net.load_state_dict(dd)
     net.to(device)
 
     net.train()
