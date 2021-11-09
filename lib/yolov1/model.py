@@ -186,21 +186,11 @@ def resnet50(pretrained=False, **kwargs):
 class ResNet50(torch.nn.Module):
     def __init__(self):
         super(ResNet50, self).__init__()
-        model = tv.models.resnet50(pretrained=True)
-        self.model_layers = [
-            model.conv1, model.bn1, model.relu, model.maxpool,
-            model.layer1, model.layer2, model.layer3
-        ] # 1, 1024, 28, 28
-
-        self.backbone = torch.nn.ModuleList()
+        self.base_model = tv.models.resnet50(pretrained=True)
         self.extra = torch.nn.ModuleList()
-
-        for layer in self.model_layers:
-            self.backbone.append(layer)
 
         extra = [
             torch.nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
-
             torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
             torch.nn.Conv2d(512, 1024, kernel_size=(3, 3), padding=(1, 1)),
             torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
@@ -215,22 +205,38 @@ class ResNet50(torch.nn.Module):
         for layer in extra:
             self.extra.append(layer)
 
-        self.conv1 = torch.nn.Conv2d(1024, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.conv2 = torch.nn.Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
-        self.conv3 = torch.nn.Conv2d(256, 30, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv1 = torch.nn.Conv2d(2048, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.bn1 = torch.nn.BatchNorm2d(1024)
+        self.relu1 = torch.nn.ReLU(inplace=True)
+        self.conv2 = torch.nn.Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1))
+        self.bn2 = torch.nn.BatchNorm2d(512)
+        self.relu2 = torch.nn.ReLU(inplace=True)
+        self.maxpool = torch.nn.MaxPool2d(kernel_size=(3,3), stride=(2,2), padding=(1,1))
+        self.conv3 = torch.nn.Conv2d(512, 30, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
 
     def forward(self, x):
         output = x
-        for layer in self.backbone:
-            output = layer(output)
-            # print(output.shape)
+        output = self.base_model.conv1(output)
+        output = self.base_model.bn1(output)
+        output = self.base_model.relu(output)
+        output = self.base_model.maxpool(output)
+        output = self.base_model.layer1(output)
+        output = self.base_model.layer2(output)
+        output = self.base_model.layer3(output)
+        output = self.base_model.layer4(output)
 
-        for layer in self.extra:
-            output = layer(output)
-            # print(output.shape)
+        # for layer in self.extra:
+        #     output = layer(output)
+        #     # print(output.shape)
         output = self.conv1(output)
+        output = self.bn1(output)
+        output = self.relu1(output)
         output = self.conv2(output)
+        output = self.bn2(output)
+        output = self.relu2(output)
+        output = self.maxpool(output)
         output = self.conv3(output)
+        output = torch.sigmoid(output)
         output = output.permute(0, 2, 3, 1)
 
         return output
