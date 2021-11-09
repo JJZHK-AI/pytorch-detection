@@ -212,7 +212,10 @@ class ResNet50(torch.nn.Module):
         self.bn2 = torch.nn.BatchNorm2d(512)
         self.relu2 = torch.nn.LeakyReLU(negative_slope=0.1)
         self.maxpool = torch.nn.MaxPool2d(kernel_size=(3,3), stride=(2,2), padding=(1,1))
-        self.conv3 = torch.nn.Conv2d(512, 30, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv3 = torch.nn.Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.bn3 = torch.nn.BatchNorm2d(256)
+        self.relu3 = torch.nn.LeakyReLU(negative_slope=0.1)
+        self.conv4 = torch.nn.Conv2d(256, 30, kernel_size=(1, 1), stride=(1, 1))
 
     def forward(self, x):
         output = x
@@ -236,6 +239,9 @@ class ResNet50(torch.nn.Module):
         output = self.relu2(output)
         output = self.maxpool(output)
         output = self.conv3(output)
+        output = self.bn3(output)
+        output = self.relu3(output)
+        output = self.conv4(output)
         output = torch.sigmoid(output)
         output = output.permute(0, 2, 3, 1)
 
