@@ -151,7 +151,7 @@ class Yolov1Solver(Solver):
     def train_epoch(self, epoch, bar, newir) -> tuple:
         avg_loss = 0
         time = 0
-        i = 0
+        index = 0
 
         for index, (images, target, info) in enumerate(self._train_loader_):
             images = torch.autograd.Variable(torch.FloatTensor(images)).to(device)
@@ -168,7 +168,7 @@ class Yolov1Solver(Solver):
 
             time = bar.show(epoch, loss.item(), avg_loss / (index + 1), newir)
 
-        return avg_loss / (i + 1), time
+        return avg_loss / (index + 1), time
     #endregion
 
     #region private
