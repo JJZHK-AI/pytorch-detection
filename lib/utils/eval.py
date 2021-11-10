@@ -38,5 +38,4 @@ class EvalObj:
             bar.show(1)
 
         print("calculating mAP...")
-        print(infos)
         return loader.dataset.evaluate_detections(all_boxes, output_path, infos)
