@@ -24,10 +24,10 @@ from lib.yolov1.model import resnet50, ResNet50
 from lib.yolov1.utils import decoder
 
 phase = 'train'
-ROOT = "/" # "/Users/jjzhk/data/"
-learning_rate = 0.001
+ROOT = "/"  #"/Users/jjzhk/data/"
+learning_rate = 0.0005 # 0.001
 num_epochs = 50
-batch_size = 24
+batch_size = 32 # 24
 net = ResNet50() #resnet50() #
 config = DetectConfig("cfg")
 config.loadfile("voc.cfg")
@@ -55,7 +55,9 @@ if phase == 'train':
     optimizer = torch.optim.SGD(params, lr=learning_rate, momentum=0.9, weight_decay=5e-4)
 
     train_dataset = VOCDetection(config, phase="train")
-    train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=batch_size,shuffle=True,num_workers=0)
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                                               batch_size=batch_size,
+                                               shuffle=True, num_workers=0)
     # test_dataset = yoloDataset(root=file_root,list_file='voc07_test.txt',train=False,transform = [transforms.ToTensor()] )
     # test_dataset = yoloDataset(root=file_root,list_file='voc2007test.txt',train=False,transform = [transforms.ToTensor()] )
     # test_loader = DataLoader(test_dataset,batch_size=batch_size,shuffle=False,num_workers=4)
@@ -98,7 +100,7 @@ if phase == 'train':
 elif phase == 'eval':
     pass
 elif phase == 'test':
-    net.load_state_dict(torch.load("weights/50.pth", map_location='cpu'))
+    net.load_state_dict(torch.load("weights/44.pth", map_location='cpu'))
     net.to(device)
     net.eval()
     test_dataset = VOCDetection(config, phase="test")

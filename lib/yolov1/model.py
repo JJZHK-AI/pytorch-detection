@@ -241,6 +241,7 @@ class ResNet50(torch.nn.Module):
         output = self.conv3(output)
         output = self.bn3(output)
         output = self.relu3(output)
+        output = self.maxpool(output)
         output = self.conv4(output)
         output = torch.sigmoid(output)
         output = output.permute(0, 2, 3, 1)
