@@ -35,13 +35,8 @@ class Yolov1Solver(Solver):
         if justInitBase:
             pass
         else:
-            weights_json = torch.load(weights, map_location='cpu')
-            json = {}
-            for key in weights_json.keys():
-                if not key.startswith('extra'):
-                    json[key] = weights_json[key]
-
-            self.model.load_state_dict(json)
+            weights_json = torch.load(weights)
+            self.model.load_state_dict(weights_json)
 
     def init_test_loader(self):
         return torch.utils.data.DataLoader(self._test_dataset_,
