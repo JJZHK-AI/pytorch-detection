@@ -28,6 +28,7 @@ def write_voc_results_file(cfg, output_dir, all_boxes, infos):
 
 
 def get_voc_results_file_template(output_dir, cls):
+    print(cls)
     filename = 'det_%s.txt' % (cls)
     path = os.path.join(output_dir, filename)
     return path
