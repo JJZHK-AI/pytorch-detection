@@ -8,6 +8,7 @@
 @desc: 
 """
 import torch
+from jjzhk.device import device
 
 
 def decoder(pred):
@@ -37,10 +38,10 @@ def decoder(pred):
                 if mask[i,j,b] == 1:
                     #print(i,j,b)
                     box = pred[i,j,b*5:b*5+4]
-                    contain_prob = torch.FloatTensor([pred[i,j,b*5+4]])
-                    xy = torch.FloatTensor([j,i])*cell_size #cell左上角  up left of cell
+                    contain_prob = torch.FloatTensor([pred[i,j,b*5+4]]).to(device)
+                    xy = torch.FloatTensor([j,i]).to(device)*cell_size #cell左上角  up left of cell
                     box[:2] = box[:2]*cell_size + xy # return cxcy relative to image
-                    box_xy = torch.FloatTensor(box.size())#转换成xy形式    convert[cx,cy,w,h] to [x1,xy1,x2,y2]
+                    box_xy = torch.FloatTensor(box.size()).to(device)#转换成xy形式    convert[cx,cy,w,h] to [x1,xy1,x2,y2]
                     box_xy[:2] = box[:2] - 0.5*box[2:]
                     box_xy[2:] = box[:2] + 0.5*box[2:]
                     max_prob,cls_index = torch.max(pred[i,j,10:],0)
@@ -58,6 +59,7 @@ def decoder(pred):
         cls_indexs = torch.cat(cls_indexs,0) #(n,)
     keep = nms(boxes,probs)
     return boxes[keep],cls_indexs[keep],probs[keep]
+
 
 def nms(bboxes,scores,threshold=0.5):
     '''
@@ -93,4 +95,4 @@ def nms(bboxes,scores,threshold=0.5):
         if ids.numel() == 0:
             break
         order = order[ids+1]
-    return torch.LongTensor(keep)
+    return torch.LongTensor(keep).to(device)
