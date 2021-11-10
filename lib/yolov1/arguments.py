@@ -150,7 +150,7 @@ def randomShift(bgr,boxes,labels):
         elif shift_x<0 and shift_y<0:
             after_shfit_image[:height+int(shift_y),:width+int(shift_x),:] = bgr[-int(shift_y):,-int(shift_x):,:]
 
-        shift_xy = torch.FloatTensor([[int(shift_x),int(shift_y)]]).expand_as(center)
+        shift_xy = torch.FloatTensor([[int(shift_x),int(shift_y)]]).expand_as(center).to(device)
         center = center + shift_xy
         mask1 = (center[:,0] >0) & (center[:,0] < width)
         mask2 = (center[:,1] >0) & (center[:,1] < height)
@@ -158,7 +158,7 @@ def randomShift(bgr,boxes,labels):
         boxes_in = boxes[mask.expand_as(boxes)].view(-1,4)
         if len(boxes_in) == 0:
             return bgr,boxes,labels
-        box_shift = torch.FloatTensor([[int(shift_x),int(shift_y),int(shift_x),int(shift_y)]]).expand_as(boxes_in)
+        box_shift = torch.FloatTensor([[int(shift_x),int(shift_y),int(shift_x),int(shift_y)]]).expand_as(boxes_in).to(device)
         boxes_in = boxes_in+box_shift
         labels_in = labels[mask.view(-1)]
         return after_shfit_image,boxes_in,labels_in
