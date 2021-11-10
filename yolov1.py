@@ -24,7 +24,7 @@ from lib.yolov1.model import resnet50, ResNet50
 from lib.yolov1.utils import decoder
 
 phase = 'train'
-ROOT = "/"  #"/Users/jjzhk/data/"
+ROOT = "/Users/jjzhk/data/"
 learning_rate = 0.0005 # 0.001
 num_epochs = 50
 batch_size = 32 # 24

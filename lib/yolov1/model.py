@@ -228,9 +228,6 @@ class ResNet50(torch.nn.Module):
         output = self.base_model.layer3(output)
         output = self.base_model.layer4(output)
 
-        # for layer in self.extra:
-        #     output = layer(output)
-        #     # print(output.shape)
         output = self.conv1(output)
         output = self.bn1(output)
         output = self.relu1(output)
@@ -241,7 +238,6 @@ class ResNet50(torch.nn.Module):
         output = self.conv3(output)
         output = self.bn3(output)
         output = self.relu3(output)
-        output = self.maxpool(output)
         output = self.conv4(output)
         output = torch.sigmoid(output)
         output = output.permute(0, 2, 3, 1)
