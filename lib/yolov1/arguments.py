@@ -44,7 +44,7 @@ def randomCrop(bgr,boxes,labels):
         y = random.uniform(0,height-h)
         x,y,h,w = int(x),int(y),int(h),int(w)
 
-        center = center - torch.FloatTensor([[x,y]]).expand_as(center)
+        center = center - torch.FloatTensor([[x,y]]).expand_as(center).to(device)
         mask1 = (center[:,0]>0) & (center[:,0]<w)
         mask2 = (center[:,1]>0) & (center[:,1]<h)
         mask = (mask1 & mask2).view(-1,1)
@@ -52,7 +52,7 @@ def randomCrop(bgr,boxes,labels):
         boxes_in = boxes[mask.expand_as(boxes)].view(-1,4)
         if(len(boxes_in)==0):
             return bgr,boxes,labels
-        box_shift = torch.FloatTensor([[x,y,x,y]]).expand_as(boxes_in)
+        box_shift = torch.FloatTensor([[x,y,x,y]]).expand_as(boxes_in).to(device)
 
         boxes_in = boxes_in - box_shift
         boxes_in[:,0]=boxes_in[:,0].clamp_(min=0,max=w)
