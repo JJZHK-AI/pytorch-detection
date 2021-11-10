@@ -55,13 +55,13 @@ def voc_eval(detpath, infos, classname, ovthresh=0.5, use_07_metric=True):
     recs = {}
     for i, info in enumerate(infos):
         imagename = info[0]['img_id']
-        recs[imagename] = info['detail']
+        recs[imagename] = info[0]['detail']
 
     # extract gt objects for this class
     class_recs = {}
     npos = 0
     for info in infos:
-        imagename = info['img_id']
+        imagename = info[0]['img_id']
         R = [obj for obj in recs[imagename] if obj['name'] == classname]
         bbox = np.array([x['bbox'] for x in R])
         difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
