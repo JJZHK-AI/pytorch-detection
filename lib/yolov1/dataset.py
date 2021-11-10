@@ -81,7 +81,7 @@ class YoloV1Detection(DataSetBase):
         return 7x7x30
         '''
         grid_num = 7
-        target = torch.zeros((grid_num,grid_num,30))
+        target = np.zeros((grid_num,grid_num,30))
         cell_size = 1./grid_num
         wh = boxes[:,2:]-boxes[:,:2]
         cxcy = (boxes[:,2:]+boxes[:,:2])/2
