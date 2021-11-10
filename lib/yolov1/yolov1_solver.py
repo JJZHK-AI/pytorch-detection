@@ -160,7 +160,7 @@ class Yolov1Solver(Solver):
 
         for index, (images, target, info) in enumerate(self._train_loader_):
             images = torch.autograd.Variable(torch.FloatTensor(images)).to(device)
-            target = torch.autograd.Variable(torch.FloatTensor(np.stack(target, 0))).to(device)
+            target = torch.autograd.Variable(torch.FloatTensor(np.stack(target.cpu(), 0))).to(device)
             # images, target = images.to(device), target.to(device)
 
             pred = self.model(images)
