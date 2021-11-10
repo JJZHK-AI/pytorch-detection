@@ -21,10 +21,6 @@ def write_voc_results_file(cfg, output_dir, all_boxes, infos):
                     continue
                 # the VOCdevkit expects 1-based indices
                 for k in range(dets.shape[0]):
-                    print('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
-                            format(info[0]['img_id'], dets[k, -1],
-                                   dets[k, 0] + 1, dets[k, 1] + 1,
-                                   dets[k, 2] + 1, dets[k, 3] + 1))
                     f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
                             format(info[0]['img_id'], dets[k, -1],
                                    dets[k, 0] + 1, dets[k, 1] + 1,
