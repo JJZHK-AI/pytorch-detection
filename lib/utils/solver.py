@@ -298,9 +298,9 @@ class Solver(object):
 
             resume_checkpoints = {
                 'state_dict': self.model.module.state_dict() if hasattr(self.model,
-                                                                        'module') else self.model.state_dict(),
-                'lr_scheduler': self._lr_scheduler_.state_dict(),
-                'optimizer': self._optimizer_.state_dict()
+                                                                        'module') else self.model.state_dict()
+                # 'lr_scheduler': self._lr_scheduler_.state_dict(),
+                # 'optimizer': self._optimizer_.state_dict()
             }
             self.logger.save_checkpoints_file(epoch, resume_checkpoints)
             self.logger.save_loss(epoch, avg_loss_per_epoch, newir, time)
