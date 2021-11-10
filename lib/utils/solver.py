@@ -66,6 +66,7 @@ class Solver(object):
         return self.init_others()
 
     def _resume_checkpoint_(self, weights, justInitBase=False):
+        print(weights)
         return self.load_check_point(weights, justInitBase)
 
     def _test_epoch_(self, epoch, model):
