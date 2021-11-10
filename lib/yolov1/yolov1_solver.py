@@ -35,7 +35,7 @@ class Yolov1Solver(Solver):
         if justInitBase:
             pass
         else:
-            weights_json = torch.load(os.path.join(torch.hub.get_dir(), 'checkpoints', weights), map_location='cpu')
+            weights_json = torch.load(weights, map_location='cpu')
             json = {}
             for key in weights_json.keys():
                 if not key.startswith('extra'):
