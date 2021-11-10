@@ -11,6 +11,7 @@ import random
 import numpy as np
 import torch
 import cv2
+from jjzhk.device import device
 
 
 def random_flip(im, boxes):
@@ -70,7 +71,7 @@ def randomScale(bgr,boxes):
         scale = random.uniform(0.8,1.2)
         height,width,c = bgr.shape
         bgr = cv2.resize(bgr,(int(width*scale),height))
-        scale_tensor = torch.FloatTensor([[scale,1,scale,1]]).expand_as(boxes)
+        scale_tensor = torch.FloatTensor([[scale,1,scale,1]]).expand_as(boxes).to(device)
         boxes = boxes * scale_tensor
         return bgr,boxes
     return bgr,boxes
