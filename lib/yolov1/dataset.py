@@ -53,7 +53,7 @@ class YoloV1Detection(DataSetBase):
             img = BGR2RGB(img)  # because pytorch pretrained model use RGB
             img = subMean(img, self.mean)  # 减去均值
             img = cv2.resize(img, (self.image_size, self.image_size))
-            target = self.encoder(boxes, labels)  # 7x7x30
+            target = self.encoder(boxes, labels).cpu().numpy()  # 7x7x30
             for t in self.transform:
                 img = t(img)
         elif self.phase == 'eval':
@@ -81,7 +81,7 @@ class YoloV1Detection(DataSetBase):
         return 7x7x30
         '''
         grid_num = 7
-        target = np.zeros((grid_num,grid_num,30))
+        target = torch.zeros((grid_num,grid_num,30))
         cell_size = 1./grid_num
         wh = boxes[:,2:]-boxes[:,:2]
         cxcy = (boxes[:,2:]+boxes[:,:2])/2
