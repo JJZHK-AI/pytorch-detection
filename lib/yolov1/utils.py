@@ -37,10 +37,10 @@ def decoder(pred):
                 # mask[i,j,index] = 0
                 if mask[i,j,b] == 1:
                     #print(i,j,b)
-                    box = pred[i,j,b*5:b*5+4]
+                    box = pred[i,j,b*5:b*5+4].to(device)
                     contain_prob = torch.FloatTensor([pred[i,j,b*5+4]]).to(device)
-                    xy = torch.FloatTensor([j,i]).to(device)*cell_size #cell左上角  up left of cell
-                    box[:2] = box[:2]*cell_size + xy # return cxcy relative to image
+                    xy = torch.FloatTensor([j,i]).to(device) * cell_size #cell左上角  up left of cell
+                    box[:2] = box[:2] * cell_size + xy # return cxcy relative to image
                     box_xy = torch.FloatTensor(box.size()).to(device)#转换成xy形式    convert[cx,cy,w,h] to [x1,xy1,x2,y2]
                     box_xy[:2] = box[:2] - 0.5*box[2:]
                     box_xy[2:] = box[:2] + 0.5*box[2:]
