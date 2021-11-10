@@ -57,7 +57,7 @@ if phase == 'train':
     train_dataset = VOCDetection(config, phase="train")
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size,
-                                               shuffle=True, num_workers=0)
+                                               shuffle=True, num_workers=4)
     # test_dataset = yoloDataset(root=file_root,list_file='voc07_test.txt',train=False,transform = [transforms.ToTensor()] )
     # test_dataset = yoloDataset(root=file_root,list_file='voc2007test.txt',train=False,transform = [transforms.ToTensor()] )
     # test_loader = DataLoader(test_dataset,batch_size=batch_size,shuffle=False,num_workers=4)
