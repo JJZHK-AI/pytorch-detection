@@ -36,7 +36,7 @@ class Yolov1Solver(Solver):
             pass
         else:
             weights_json = torch.load(weights)
-            print(weights_json)
+            print(weights_json.keys())
             self.model.load_state_dict(weights_json)
 
     def init_test_loader(self):
