@@ -9,17 +9,16 @@
 '''
 from jjzhk.config import DetectConfig
 from lib.utils.eval import EvalObj
+import torch
 
 
-class SSDEval(EvalObj):
+class YOLOV1Eval(EvalObj):
     def __init__(self, config: DetectConfig, model):
-        super(SSDEval, self).__init__(config, model)
+        super(YOLOV1Eval, self).__init__(config, model)
 
     def eval_boxes(self, batch, **kwargs) -> tuple:
-        images, targets, info = batch['img'], batch['annot'], batch['info']
-        detector = kwargs.get('detector')
-        detections = self.model.get_detections(images, detector=detector)
+        images, info = batch[0], batch[2]
+        images = torch.autograd.Variable(torch.FloatTensor(images))
+        detections = self.model(images)
 
-        return detections, info[0]
-
-
+        return detections, info

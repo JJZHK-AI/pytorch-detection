@@ -12,15 +12,24 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from jjzhk.device import device
+from lib.loss.loss_zoo import LOSS_ZOO
+from jjzhk.config import DetectConfig
+
+
+@LOSS_ZOO.register()
+def yololoss(cfg: DetectConfig):
+    return yoloLoss(cfg)
 
 
 class yoloLoss(nn.Module):
-    def __init__(self, S, B, l_coord, l_noobj):
+    def __init__(self, cfg):
         super(yoloLoss, self).__init__()
-        self.S = S
-        self.B = B
-        self.l_coord = l_coord
-        self.l_noobj = l_noobj
+        self.cfg = cfg
+        self.S = float(self.cfg['net']['cell_number'])
+        self.B = 2
+        self.l_coord = 5
+        self.l_noobj = 0.5
+        self.final_output_channel = self.cfg['net']['output_channel']
 
     def compute_iou(self, box1, box2):
         '''Compute the intersection over union of two set of boxes, each box is [x1,y1,x2,y2].
@@ -66,17 +75,17 @@ class yoloLoss(nn.Module):
         coo_mask = coo_mask.unsqueeze(-1).expand_as(target_tensor)
         noo_mask = noo_mask.unsqueeze(-1).expand_as(target_tensor)
 
-        coo_pred = pred_tensor[coo_mask].view(-1, 30)
+        coo_pred = pred_tensor[coo_mask].view(-1, self.final_output_channel)
         box_pred = coo_pred[:, :10].contiguous().view(-1, 5)  # box[x1,y1,w1,h1,c1]
         class_pred = coo_pred[:, 10:]  # [x2,y2,w2,h2,c2]
 
-        coo_target = target_tensor[coo_mask].view(-1, 30)
+        coo_target = target_tensor[coo_mask].view(-1, self.final_output_channel)
         box_target = coo_target[:, :10].contiguous().view(-1, 5)
         class_target = coo_target[:, 10:]
 
         # compute not contain obj loss
-        noo_pred = pred_tensor[noo_mask].view(-1, 30)
-        noo_target = target_tensor[noo_mask].view(-1, 30)
+        noo_pred = pred_tensor[noo_mask].view(-1, self.final_output_channel)
+        noo_target = target_tensor[noo_mask].view(-1, self.final_output_channel)
         noo_pred_mask = torch.ByteTensor(noo_pred.size()).to(device)
         noo_pred_mask.zero_()
         noo_pred_mask[:, 4] = 1
@@ -95,12 +104,12 @@ class yoloLoss(nn.Module):
         for i in range(0, box_target.size()[0], 2):  # choose the best iou box
             box1 = box_pred[i:i + 2]
             box1_xyxy = Variable(torch.FloatTensor(box1.size()))
-            box1_xyxy[:, :2] = box1[:, :2] / 14. - 0.5 * box1[:, 2:4]
-            box1_xyxy[:, 2:4] = box1[:, :2] / 14. + 0.5 * box1[:, 2:4]
+            box1_xyxy[:, :2] = box1[:, :2] / self.S - 0.5 * box1[:, 2:4]
+            box1_xyxy[:, 2:4] = box1[:, :2] / self.S + 0.5 * box1[:, 2:4]
             box2 = box_target[i].view(-1, 5)
             box2_xyxy = Variable(torch.FloatTensor(box2.size()))
-            box2_xyxy[:, :2] = box2[:, :2] / 14. - 0.5 * box2[:, 2:4]
-            box2_xyxy[:, 2:4] = box2[:, :2] / 14. + 0.5 * box2[:, 2:4]
+            box2_xyxy[:, :2] = box2[:, :2] / self.S - 0.5 * box2[:, 2:4]
+            box2_xyxy[:, 2:4] = box2[:, :2] / self.S + 0.5 * box2[:, 2:4]
             iou = self.compute_iou(box1_xyxy[:, :4], box2_xyxy[:, :4])  # [2,1]
             max_iou, max_index = iou.max(0)
             max_index = max_index.data.to(device)
@@ -136,5 +145,4 @@ class yoloLoss(nn.Module):
         # 3.class loss
         class_loss = F.mse_loss(class_pred, class_target, reduction='sum')
 
-        return (
-                           self.l_coord * loc_loss + 2 * contain_loss + not_contain_loss + self.l_noobj * nooobj_loss + class_loss) / N
+        return (self.l_coord * loc_loss + 2 * contain_loss + not_contain_loss + self.l_noobj * nooobj_loss + class_loss) / N

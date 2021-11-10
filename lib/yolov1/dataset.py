@@ -10,11 +10,18 @@
 import torch.utils.data
 import numpy as np
 import torchvision as tv
+from lib.dataset.data_zoo import DATASET_ZOO
 from jjzhk.dataset import TestData, VOCData, COCOData, DataSetBase
 from jjzhk.config import DetectConfig
 from lib.yolov1.arguments import random_flip, randomBlur, randomCrop, randomScale,RandomBrightness
 from lib.yolov1.arguments import RandomHue, RandomSaturation, randomShift, BGR2RGB, subMean
 import cv2
+from lib.utils.util import write_voc_results_file, do_python_eval
+
+
+@DATASET_ZOO.register()
+def yolov1_voc(cfg, phase):
+    return VOCDetection(cfg, phase)
 
 
 class YoloV1Detection(DataSetBase):
@@ -49,9 +56,12 @@ class YoloV1Detection(DataSetBase):
             target = self.encoder(boxes, labels)  # 7x7x30
             for t in self.transform:
                 img = t(img)
-            return img, target
         elif self.phase == 'eval':
-            pass
+            img = cv2.resize(img, (self.image_size, self.image_size))
+            img = BGR2RGB(img)
+            img = subMean(img, self.mean)  # 减去均值
+            for t in self.transform:
+                img = t(img)
         else:
             h, w, _ = img.shape
             img = cv2.resize(img, (448, 448))
@@ -61,7 +71,8 @@ class YoloV1Detection(DataSetBase):
 
             transform = tv.transforms.Compose([tv.transforms.ToTensor(), ])
             img = transform(img)
-            return img, info
+
+        return img, target, info
 
     def encoder(self,boxes,labels):
         '''
@@ -88,6 +99,17 @@ class YoloV1Detection(DataSetBase):
             target[int(ij[1]),int(ij[0]),5:7] = delta_xy
         return target
 
+    def collater(self, batch):
+        targets = []
+        imgs = []
+        infos = []
+        for sample in batch:
+            imgs.append(sample[0])
+            if sample[1] is not None:
+                targets.append(sample[1])
+            infos.append(sample[2])
+        return np.stack(imgs, 0), targets, infos
+
 
 class VOCDetection(YoloV1Detection):
     def __init__(self,cfg:DetectConfig, phase):
@@ -104,8 +126,7 @@ class VOCDetection(YoloV1Detection):
             raise Exception("phase must be train, eval, test")
 
     def evaluate_detections(self, boxes, output_dir, infos):
-        pass
-        # write_voc_results_file(self.cfg, output_dir, boxes, infos)
-        # return do_python_eval(self.cfg, infos, output_dir)
+        write_voc_results_file(self.cfg, output_dir, boxes, infos)
+        return do_python_eval(self.cfg, infos, output_dir)
 
 

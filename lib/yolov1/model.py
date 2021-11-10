@@ -11,7 +11,12 @@ import torch
 import math
 import torchvision as tv
 import torch.nn.functional as F
-import torch.utils.model_zoo as model_zoo
+import torch.utils.model_zoo
+from jjzhk.config import DetectConfig
+from lib.model.model_zoo import MODEL_ZOO
+import numpy as np
+from lib.yolov1.utils import decoder
+
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -20,6 +25,16 @@ model_urls = {
     'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
+
+
+@MODEL_ZOO.register()
+def yolov1_resnet(cfg: DetectConfig):
+    return resnet(False)
+
+
+@MODEL_ZOO.register()
+def yolov1_resnet50(cfg: DetectConfig):
+    return ResNet50(cfg)
 
 
 class Bottleneck(torch.nn.Module):
@@ -171,7 +186,7 @@ class ResNet(torch.nn.Module):
         return x
 
 
-def resnet50(pretrained=False, **kwargs):
+def resnet(pretrained=False, **kwargs):
     """Constructs a ResNet-50 model.
 
     Args:
@@ -179,31 +194,15 @@ def resnet50(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
+        model.load_state_dict(torch.utils.model_zoo.load_url(model_urls['resnet50']))
     return model
 
 
 class ResNet50(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, cfg):
         super(ResNet50, self).__init__()
+        self.cfg = cfg
         self.base_model = tv.models.resnet50(pretrained=True)
-        self.extra = torch.nn.ModuleList()
-
-        extra = [
-            torch.nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
-            torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
-            torch.nn.Conv2d(512, 1024, kernel_size=(3, 3), padding=(1, 1)),
-            torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
-            torch.nn.Conv2d(512, 1024, kernel_size=(3, 3), padding=(1, 1)),
-            torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1)),
-            torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
-
-            torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1)),
-            torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1))
-        ]
-
-        for layer in extra:
-            self.extra.append(layer)
 
         self.conv1 = torch.nn.Conv2d(2048, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         self.bn1 = torch.nn.BatchNorm2d(1024)
@@ -215,7 +214,25 @@ class ResNet50(torch.nn.Module):
         self.conv3 = torch.nn.Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         self.bn3 = torch.nn.BatchNorm2d(256)
         self.relu3 = torch.nn.LeakyReLU(negative_slope=0.1)
-        self.conv4 = torch.nn.Conv2d(256, 30, kernel_size=(1, 1), stride=(1, 1))
+        self.conv4 = torch.nn.Conv2d(256, cfg['net']['output_channel'], kernel_size=(1, 1), stride=(1, 1))
+
+        # self.extra = torch.nn.ModuleList()
+        #
+        # extra = [
+        #     torch.nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
+        #     torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
+        #     torch.nn.Conv2d(512, 1024, kernel_size=(3, 3), padding=(1, 1)),
+        #     torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
+        #     torch.nn.Conv2d(512, 1024, kernel_size=(3, 3), padding=(1, 1)),
+        #     torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1)),
+        #     torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+        #
+        #     torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1)),
+        #     torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1))
+        # ]
+        #
+        # for layer in extra:
+        #     self.extra.append(layer)
 
     def forward(self, x):
         output = x
@@ -243,3 +260,26 @@ class ResNet50(torch.nn.Module):
         output = output.permute(0, 2, 3, 1)
 
         return output
+
+    def get_eval_predictions(self, info, detections):
+        result = []
+        for inf, detection in zip(info, detections):
+            w, h = inf['width'], inf['height']
+            boxes, cls_indexs, probs = decoder(detection)
+
+            for i, box in enumerate(boxes):
+                prob = probs[i]
+                prob = float(prob)
+                if prob >= self.cfg['base']['conf_threshold']:
+                    x1 = int(box[0] * w)
+                    x2 = int(box[2] * w)
+                    y1 = int(box[1] * h)
+                    y2 = int(box[3] * h)
+
+                    result.append([(x1, y1), (x2, y2), int(cls_indexs[i])+1, self.cfg.classname(int(cls_indexs[i])+1), prob])
+
+        re_boxes = [[] for _ in range(len(self.cfg['class_info'].keys()) + 1)]
+        for (x1, y1), (x2, y2), class_id, class_name, prob in result: #image_id is actually image_path
+            re_boxes[class_id].append([x1, y1, x2, y2, prob])
+
+        return re_boxes

@@ -120,7 +120,7 @@ class SSDSolver(Solver):
         return image
 
     def eval_epoch(self, epoch, model):
-        eval_model = s.EvalObj(self.cfg, model)
+        eval_model = s.SSDEval(self.cfg, model)
 
         mAP, info = eval_model.calculateMAP(self._eval_loader_,
                                             os.path.join(self._eval_path_, str(epoch)),

@@ -16,7 +16,7 @@ import math
 import json
 import os
 
-from lib.ssd.eval import write_voc_results_file, do_python_eval
+from lib.utils.util import write_voc_results_file, do_python_eval
 from jjzhk.config import DetectConfig
 from lib.dataset.data_zoo import DATASET_ZOO
 from jjzhk.dataset import TestData, VOCData, COCOData, DataSetBase
