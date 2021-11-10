@@ -41,7 +41,7 @@ def do_python_eval(cfg, infos, output_dir, use_07=True):
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
     info = {}
-    for i, cls in enumerate(cfg.keys()):
+    for i, cls in enumerate(cfg['class_info'].keys()):
         filename = get_voc_results_file_template(output_dir, cls)
         rec, prec, ap = voc_eval(
             filename, infos, cls,
