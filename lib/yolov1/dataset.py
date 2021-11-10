@@ -35,8 +35,8 @@ class YoloV1Detection(DataSetBase):
         # target [[label, left, top, right, bottom]]
         img, target = self.dataset.find_item(index)
         info = self.dataset.get_item_info(index)
+        target = np.asarray(target)
         if self.phase == 'train':
-            target = np.asarray(target)
             labels = torch.Tensor(target[:, 0])
             boxes = torch.Tensor(target[:, 1:])
             img, boxes = random_flip(img, boxes)
@@ -108,7 +108,7 @@ class YoloV1Detection(DataSetBase):
             if sample[1] is not None:
                 targets.append(sample[1])
             infos.append(sample[2])
-        return np.stack(imgs, 0), targets, infos
+        return np.stack(imgs, 0), np.stack(targets, 0), infos
 
 
 class VOCDetection(YoloV1Detection):
