@@ -1,1 +1,1 @@
-python yolov1.py -dataroot=/Users/jjzhk/data/ -model=resnet50 -datatype=voc -phase=test
+python yolov1.py -dataroot=/ -model=resnet50 -datatype=voc -phase=train
