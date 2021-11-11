@@ -263,8 +263,8 @@ class ResNet50(torch.nn.Module):
 
     def get_eval_predictions(self, info, detections):
         result = []
-        for inf, detection in zip(info, detections):
-            w, h = inf['width'], inf['height']
+        for detection in detections:
+            w, h = info['width'], info['height']
             boxes, cls_indexs, probs = decoder(detection)
 
             for i, box in enumerate(boxes):
