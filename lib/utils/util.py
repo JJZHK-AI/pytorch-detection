@@ -22,7 +22,7 @@ def write_voc_results_file(cfg, output_dir, all_boxes, infos):
                 # the VOCdevkit expects 1-based indices
                 for k in range(dets.shape[0]):
                     f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
-                            format(info[0]['img_id'], dets[k, -1],
+                            format(info['img_id'], dets[k, -1],
                                    dets[k, 0] + 1, dets[k, 1] + 1,
                                    dets[k, 2] + 1, dets[k, 3] + 1))
 
@@ -54,14 +54,14 @@ def do_python_eval(cfg, infos, output_dir, use_07=True):
 def voc_eval(detpath, infos, classname, ovthresh=0.5, use_07_metric=True):
     recs = {}
     for i, info in enumerate(infos):
-        imagename = info[0]['img_id']
-        recs[imagename] = info[0]['detail']
+        imagename = info['img_id']
+        recs[imagename] = info['detail']
 
     # extract gt objects for this class
     class_recs = {}
     npos = 0
     for info in infos:
-        imagename = info[0]['img_id']
+        imagename = info['img_id']
         R = [obj for obj in recs[imagename] if obj['name'] == classname]
         bbox = np.array([x['bbox'] for x in R])
         difficult = np.array([x['difficult'] for x in R]).astype(np.bool)

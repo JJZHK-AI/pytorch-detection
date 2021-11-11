@@ -58,10 +58,10 @@ class SSDSolver(Solver):
             self._load_backbone_weights_()
         else:
             if 'https://' in weights:
-                checkpoint = torch.utils.model_zoo.load_url(weights, map_location='cpu')
+                checkpoint = torch.utils.model_zoo.load_url(weights, map_location=device)
                 self.model.load_init_weights(checkpoint)
             else:
-                self.model.load_init_weights(torch.load(os.path.join(torch.hub.get_dir(), 'checkpoints', weights), map_location='cpu'))
+                self.model.load_init_weights(torch.load(weights), map_location=device)
 
     def init_test_loader(self):
         test_sampler = self._make_data_sampler_(self._test_dataset_, False)

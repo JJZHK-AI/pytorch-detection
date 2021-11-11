@@ -22,4 +22,4 @@ class YOLOV1Eval(EvalObj):
         images = torch.autograd.Variable(torch.FloatTensor(images)).to(device)
         detections = self.model(images)
 
-        return detections, info
+        return detections, info[0]

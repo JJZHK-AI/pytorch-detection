@@ -35,7 +35,7 @@ class Yolov1Solver(Solver):
         if justInitBase:
             pass
         else:
-            weights_json = torch.load(weights)
+            weights_json = torch.load(weights, map_location=device)
             self.model.load_state_dict(weights_json['state_dict'])
 
     def init_test_loader(self):

@@ -314,13 +314,13 @@ class Solver(object):
 
     def eval(self):
         self.phase = "eval"
-        print("loading weights from %s" % self.cfg['net']['trained_weights'])
-        self._resume_checkpoint_(self.cfg['net']['trained_weights'])
+        print("loading weights from %s" % self.cfg['net']['test_weights'])
+        self._resume_checkpoint_(self.cfg['net']['test_weights'])
         self._eval_epoch_(0, self.model)
 
     def test(self):
         self.phase = "test"
-        print("loading weights from %s" % self.cfg['net']['trained_weights'])
-        self._resume_checkpoint_(self.cfg['net']['trained_weights'])
+        print("loading weights from %s" % self.cfg['net']['test_weights'])
+        self._resume_checkpoint_(self.cfg['net']['test_weights'])
         self._test_epoch_(0, self.model)
     #endregion
