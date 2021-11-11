@@ -13,7 +13,7 @@ import torchvision as tv
 from lib.dataset.data_zoo import DATASET_ZOO
 from jjzhk.dataset import TestData, VOCData, COCOData, DataSetBase
 from jjzhk.config import DetectConfig
-from lib.yolov1.arguments import random_flip, randomBlur, randomCrop, randomScale,RandomBrightness
+from lib.yolov1.arguments import random_flip, randomBlur, randomCrop, randomScale, RandomBrightness
 from lib.yolov1.arguments import RandomHue, RandomSaturation, randomShift, BGR2RGB, subMean
 import cv2
 from lib.utils.util import write_voc_results_file, do_python_eval
@@ -38,7 +38,7 @@ class YoloV1Detection(DataSetBase):
         info = self.dataset.get_item_info(index)
         target = np.asarray(target)
         if self.phase == 'train':
-            labels = torch.Tensor(target[:, 0]) + 1
+            labels = torch.Tensor(target[:, 0]) + 1  # 取出来的label是0开始的，所以需要加1
             boxes = torch.Tensor(target[:, 1:])
             img, boxes = random_flip(img, boxes)
             img, boxes = randomScale(img, boxes)
@@ -78,29 +78,29 @@ class YoloV1Detection(DataSetBase):
     # def __len__(self):
     #     return 1
 
-    def encoder(self,boxes,labels):
+    def encoder(self, boxes, labels):
         '''
         boxes (tensor) [[x1,y1,x2,y2],[]]
         labels (tensor) [...]
         return 7x7x30
         '''
         grid_num = 7
-        target = torch.zeros((grid_num,grid_num,30))
-        cell_size = 1./grid_num
-        wh = boxes[:,2:]-boxes[:,:2]
-        cxcy = (boxes[:,2:]+boxes[:,:2])/2
+        target = torch.zeros((grid_num, grid_num, 30))
+        cell_size = 1. / grid_num
+        wh = boxes[:, 2:] - boxes[:, :2]
+        cxcy = (boxes[:, 2:] + boxes[:, :2]) / 2
         for i in range(cxcy.size()[0]):
             cxcy_sample = cxcy[i]
-            ij = (cxcy_sample/cell_size).ceil()-1 #
-            target[int(ij[1]),int(ij[0]),4] = 1
-            target[int(ij[1]),int(ij[0]),9] = 1
-            target[int(ij[1]),int(ij[0]),int(labels[i])+9] = 1
-            xy = ij*cell_size #匹配到的网格的左上角相对坐标
-            delta_xy = (cxcy_sample -xy)/cell_size
-            target[int(ij[1]),int(ij[0]),2:4] = wh[i]
-            target[int(ij[1]),int(ij[0]),:2] = delta_xy
-            target[int(ij[1]),int(ij[0]),7:9] = wh[i]
-            target[int(ij[1]),int(ij[0]),5:7] = delta_xy
+            ij = (cxcy_sample / cell_size).ceil() - 1  #
+            target[int(ij[1]), int(ij[0]), 4] = 1
+            target[int(ij[1]), int(ij[0]), 9] = 1
+            target[int(ij[1]), int(ij[0]), int(labels[i]) + 9] = 1
+            xy = ij * cell_size  # 匹配到的网格的左上角相对坐标
+            delta_xy = (cxcy_sample - xy) / cell_size
+            target[int(ij[1]), int(ij[0]), 2:4] = wh[i]
+            target[int(ij[1]), int(ij[0]), :2] = delta_xy
+            target[int(ij[1]), int(ij[0]), 7:9] = wh[i]
+            target[int(ij[1]), int(ij[0]), 5:7] = delta_xy
         return target
 
     def collater(self, batch):
@@ -116,7 +116,7 @@ class YoloV1Detection(DataSetBase):
 
 
 class VOCDetection(YoloV1Detection):
-    def __init__(self,cfg:DetectConfig, phase):
+    def __init__(self, cfg: DetectConfig, phase):
         super(VOCDetection, self).__init__(cfg, phase)
 
     def __init_dataset__(self):
@@ -132,5 +132,3 @@ class VOCDetection(YoloV1Detection):
     def evaluate_detections(self, boxes, output_dir, infos):
         write_voc_results_file(self.cfg, output_dir, boxes, infos)
         return do_python_eval(self.cfg, infos, output_dir)
-
-

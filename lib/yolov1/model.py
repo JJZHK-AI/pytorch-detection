@@ -268,6 +268,9 @@ class ResNet50(torch.nn.Module):
             boxes, cls_indexs, probs = decoder(detection)
 
             for i, box in enumerate(boxes):
+                # if cls_indexs[i] == 19:
+                #     print("OK")
+
                 prob = probs[i]
                 prob = float(prob)
                 if prob >= self.cfg['base']['conf_threshold']:
@@ -280,6 +283,6 @@ class ResNet50(torch.nn.Module):
 
         re_boxes = [[] for _ in range(len(self.cfg.class_keys()) + 1)]
         for (x1, y1), (x2, y2), class_id, class_name, prob in result: #image_id is actually image_path
-            re_boxes[class_id].append([x1, y1, x2, y2, prob])
+            re_boxes[class_id+1].append([x1, y1, x2, y2, prob])
 
         return re_boxes
