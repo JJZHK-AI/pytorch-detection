@@ -276,7 +276,7 @@ class ResNet50(torch.nn.Module):
                     y1 = int(box[1] * h)
                     y2 = int(box[3] * h)
 
-                    result.append([(x1, y1), (x2, y2), int(cls_indexs[i])+1, self.cfg.classname(int(cls_indexs[i])+1), prob])
+                    result.append([(x1, y1), (x2, y2), int(cls_indexs[i]), self.cfg.classname(int(cls_indexs[i])), prob])
 
         re_boxes = [[] for _ in range(len(self.cfg.class_keys()) + 1)]
         for (x1, y1), (x2, y2), class_id, class_name, prob in result: #image_id is actually image_path
