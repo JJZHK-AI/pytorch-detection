@@ -14,7 +14,7 @@ from lib.utils.eval import EvalObj
 import torch
 from jjzhk.device import device
 from jjzhk.progressbar import ProgressBar
-
+import json
 
 class YOLOV1Eval(EvalObj):
     def __init__(self, config: DetectConfig, model):
@@ -41,6 +41,8 @@ class YOLOV1Eval(EvalObj):
             bar.show(1)
 
         print("calculating mAP...")
+        with open("preds.json", 'w+') as f:
+            json.dump(preds, f)
         return voc_eval(self.cfg, preds, targets, self.cfg['base']['conf_threshold'])
         # write_voc_results_file(self.cfg, output_path, boxes, infos)
         # return do_python_eval(self.cfg, infos, output_dir)
