@@ -28,7 +28,7 @@ class EvalObj:
         bar = ProgressBar(1, len(loader), "")
         for i, sampler in enumerate(loader):
             detections, info = self.eval_boxes(sampler, **kwargs)
-
+            print(info)
             image_eval_boxes = self.model.get_eval_predictions(info, detections)
 
             for j, box in enumerate(image_eval_boxes):
