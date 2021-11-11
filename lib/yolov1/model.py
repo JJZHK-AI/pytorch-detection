@@ -7,6 +7,8 @@
 @time: 2021-11-05 20:57:19
 @desc: 
 """
+from collections import defaultdict
+
 import torch
 import math
 import torchvision as tv
@@ -262,6 +264,7 @@ class ResNet50(torch.nn.Module):
         return output
 
     def get_eval_predictions(self, info, detections):
+        target = defaultdict(list)
         result = []
         for detection in detections:
             w, h = info['width'], info['height']
@@ -276,10 +279,12 @@ class ResNet50(torch.nn.Module):
                     y1 = int(box[1] * h)
                     y2 = int(box[3] * h)
 
-                    result.append([(x1, y1), (x2, y2), int(cls_indexs[i]), self.cfg.classname(int(cls_indexs[i])), prob])
-
-        re_boxes = [[] for _ in range(len(self.cfg.class_keys()) + 1)]
-        for (x1, y1), (x2, y2), class_id, class_name, prob in result: #image_id is actually image_path
-            re_boxes[class_id].append([x1, y1, x2, y2, prob])
-
-        return re_boxes
+                    result.append([
+                        (x1, y1),
+                        (x2, y2),
+                        self.cfg.classname(int(cls_indexs[i])+1),
+                        info['img_id'],
+                        prob])
+        for box in info['detail']:
+            target[box['name']].append(box['bbox'])
+        return result, target

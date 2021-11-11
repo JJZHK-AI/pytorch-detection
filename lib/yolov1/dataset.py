@@ -125,8 +125,4 @@ class VOCDetection(YoloV1Detection):
         else:
             raise Exception("phase must be train, eval, test")
 
-    def evaluate_detections(self, boxes, output_dir, infos):
-        write_voc_results_file(self.cfg, output_dir, boxes, infos)
-        return do_python_eval(self.cfg, infos, output_dir)
-
 
