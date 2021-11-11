@@ -74,6 +74,9 @@ class YoloV1Detection(DataSetBase):
 
         return img, target, info
 
+    # def __len__(self):
+    #     return 1
+
     def encoder(self,boxes,labels):
         '''
         boxes (tensor) [[x1,y1,x2,y2],[]]
