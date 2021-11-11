@@ -47,7 +47,7 @@ class ModelBase(torch.nn.Module):
     def get_eval_predictions(self,info, detections):
         w, h = info['width'], info['height']
 
-        re_boxes = [[] for _ in range(len(self.cfg['class_info'].keys()) + 1)]
+        re_boxes = [[] for _ in range(len(self.cfg.class_keys()) + 1)]
         scale = [w, h, w, h]
         for j in range(1, detections.size(1)):
             cls_dets = list()

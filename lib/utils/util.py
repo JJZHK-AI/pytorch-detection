@@ -12,7 +12,7 @@ import os
 
 
 def write_voc_results_file(cfg, output_dir, all_boxes, infos):
-    for cls_ind, cls in enumerate(cfg['class_info'].keys()):
+    for cls_ind, cls in enumerate(cfg.class_keys()):
         filename = get_voc_results_file_template(output_dir, cls)
         with open(filename, 'wt') as f:
             for im_ind, info in enumerate(infos):
@@ -40,7 +40,7 @@ def do_python_eval(cfg, infos, output_dir, use_07=True):
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
     info = {}
-    for i, cls in enumerate(cfg['class_info'].keys()):
+    for i, cls in enumerate(cfg.class_keys()):
         filename = get_voc_results_file_template(output_dir, cls)
         rec, prec, ap = voc_eval(
             filename, infos, cls,

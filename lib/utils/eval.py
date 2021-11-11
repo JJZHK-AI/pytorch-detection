@@ -23,7 +23,7 @@ class EvalObj:
 
     def calculateMAP(self, loader, output_path, **kwargs):
         all_boxes = [[[] for _ in range(len(loader))]
-                     for _ in range(len(self.cfg['class_info'].keys()) + 1)]
+                     for _ in range(len(self.cfg.class_keys()) + 1)]
         infos = []
         bar = ProgressBar(1, len(loader), "")
         for i, sampler in enumerate(loader):

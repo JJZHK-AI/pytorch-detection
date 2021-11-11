@@ -129,7 +129,7 @@ class SSDSolver(Solver):
 
         headers = ['class name', 'AP']
         table = []
-        for i, cls_name in enumerate(self.cfg.keys()):
+        for i, cls_name in enumerate(self.cfg.class_keys()):
             table.append([cls_name, info[cls_name]])
 
         self.logger.save_eval_txt_file(epoch, table, headers)
