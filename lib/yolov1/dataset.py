@@ -34,10 +34,11 @@ class YoloV1Detection(DataSetBase):
     def get_item(self, index):
         # target [[label, left, top, right, bottom]]
         img, target = self.dataset.find_item(index)
+
         info = self.dataset.get_item_info(index)
         target = np.asarray(target)
         if self.phase == 'train':
-            labels = torch.Tensor(target[:, 0])
+            labels = torch.Tensor(target[:, 0]) + 1
             boxes = torch.Tensor(target[:, 1:])
             img, boxes = random_flip(img, boxes)
             img, boxes = randomScale(img, boxes)

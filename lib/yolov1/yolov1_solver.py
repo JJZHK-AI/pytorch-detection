@@ -86,7 +86,7 @@ class Yolov1Solver(Solver):
                         result.append([
                             (x1, y1),
                             (x2, y2),
-                            self.cfg.classname(cls_index + 1),
+                            self.cfg.classname(cls_index),
                             img_id,
                             prob
                         ])

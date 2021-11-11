@@ -33,8 +33,6 @@ def decoder(pred):
     for i in range(grid_num):
         for j in range(grid_num):
             for b in range(2):
-                # index = min_index[i,j]
-                # mask[i,j,index] = 0
                 if mask[i,j,b] == 1:
                     #print(i,j,b)
                     box = pred[i,j,b*5:b*5+4].to(device)
