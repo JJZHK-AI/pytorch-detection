@@ -29,7 +29,7 @@ model_urls = {
 
 @MODEL_ZOO.register()
 def yolov1_resnet(cfg: DetectConfig):
-    return resnet(False)
+    return resnet(cfg, False)
 
 
 @MODEL_ZOO.register()
@@ -111,8 +111,9 @@ class detnet_bottleneck(torch.nn.Module):
 
 class ResNet(torch.nn.Module):
 
-    def __init__(self, block, layers, num_classes=1470):
+    def __init__(self,cfg, block, layers, num_classes=1470):
         self.inplanes = 64
+        self.cfg = cfg
         super(ResNet, self).__init__()
         self.conv1 = torch.nn.Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3),
                                      bias=False)
@@ -211,13 +212,13 @@ class ResNet(torch.nn.Module):
 
         return re_boxes
 
-def resnet(pretrained=False, **kwargs):
+def resnet(cfg, pretrained=False, **kwargs):
     """Constructs a ResNet-50 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
+    model = ResNet(cfg, Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
         model.load_state_dict(torch.utils.model_zoo.load_url(model_urls['resnet50']))
     return model
