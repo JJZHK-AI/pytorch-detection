@@ -23,7 +23,7 @@ class Darknet(torch.nn.Module):
         self.module_defs = self.cfg['backbone']
         self.module_list, self.routs, self.model_summary = \
             create_modules(self.module_defs, cfg, yolov4_create_modules)
-
+        self.module_list = torch.nn.ModuleList(self.module_list)
         # self.module_list, self.routs = create_modules(self.module_defs, 640, self.cfg['backbone'])
 
     def load_darknet_weights(self, weights, cutoff=-1):

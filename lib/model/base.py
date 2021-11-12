@@ -24,6 +24,7 @@ class ModelBase(torch.nn.Module):
 
         self.module_defs = self.cfg['backbone']
         self.base, _, _ =  create_modules(self.module_defs, self.cfg, callback)
+        self.base = torch.nn.ModuleList(self.base)
 
     def forward(self, x, **kwargs):
         pass

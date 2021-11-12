@@ -21,9 +21,9 @@ if torch.cuda.is_available():
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='Project')
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
-    parser.add_argument('-model', default='resnet50', type=str, help='')
+    parser.add_argument('-model', default='resnet', type=str, help='')
     parser.add_argument('-datatype', default='voc', type=str, help='')
-    parser.add_argument('-phase', default='eval', type=str, help='')
+    parser.add_argument('-phase', default='train', type=str, help='')
     # parser.add_argument('-lr',default=0.0005, type=float, help='')
     args = parser.parse_args(argv)
     return args
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     config = DetectConfig("cfg")
     config.load_file_list([
         "%s.cfg" % args.datatype,
-        os.path.join("%d" % args.imgsize, "%s" % args.datatype, "%s.cfg" % args.model)])
+        os.path.join("%d" % args.imgsize, "%s" % args.datatype, "yolov1_%s.cfg" % args.model)])
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
     # config['base']['backbone'] = args.net

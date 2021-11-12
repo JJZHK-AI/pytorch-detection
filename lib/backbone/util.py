@@ -15,7 +15,7 @@ from lib.backbone.layer_zoo import get_layer
 def create_modules(module_defs, cfg: DetectConfig, func=None):
     mdef_net = module_defs.pop(0)  # cfg training hyperparams (unused)
     output_filters = [3]  # input channels
-    module_list = torch.nn.ModuleList()
+    module_list = [] #torch.nn.ModuleList()
     routs = []
     filters = 0
     mdef_summary = {}
@@ -36,10 +36,10 @@ def create_modules(module_defs, cfg: DetectConfig, func=None):
                 [module_list.append(lay) for lay in l]
         elif type == 'maxpool':
             l = get_layer(mdef, routs = routs, mlist = module_list, mdefsummary = mdef_summary)
-            if isinstance(l, torch.nn.Sequential):
-                module_list.append(l)
-            elif isinstance(l, list):
+            if isinstance(l, list):
                 [module_list.append(lay) for lay in l]
+            else:
+                module_list.append(l)
         elif func != None:
             l, filters = func(mdef, cfg, routs = routs, mlist = module_list, mdefsummary = mdef_summary)
             if isinstance(l, torch.nn.Sequential):

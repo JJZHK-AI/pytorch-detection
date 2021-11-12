@@ -24,7 +24,7 @@ def parse_args(argv=None):
     parser.add_argument('-model', default='ssd', type=str, help='')
     parser.add_argument('-datatype', default='voc', type=str, help='')
     parser.add_argument('-net', default='vgg16', type=str, help='')
-    parser.add_argument('-phase', default='eval', type=str, help='')
+    parser.add_argument('-phase', default='test', type=str, help='')
     parser.add_argument('-imgsize', default=300, type=int, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
     args = parser.parse_args(argv)

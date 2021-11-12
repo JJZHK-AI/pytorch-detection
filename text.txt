@@ -1,51 +1,145 @@
-resnet50 14
-8.2420
-5.7207
-5.1021
-4.7384
-4.4723
-4.2864
-4.1426
-4.0795
-3.9779
-3.8964
-3.8532
-3.7867
-3.7363
-3.6867
-3.5612
-3.4958
-3.4395
-3.3970
-3.3594
-3.3267
-3.3014
-3.2514
-3.2221
-3.2211
-3.1551
-3.1524
-3.1322
-3.0963
-3.0835
-2.9449
-2.8753
-2.8652
-2.8399
-2.8314
-2.8079
-2.8016
-2.7888
-2.7834
-2.7693
-2.7565
-2.7525
-2.7494
-2.7455
-2.7477
-2.7481
-2.7355
-2.7310
-2.7295
-2.7401
-2.7228
+DarkNet_19(
+  (conv_1): Sequential(
+    (0): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (1): MaxPool2d(kernel_size=(2, 2), stride=2, padding=0, dilation=1, ceil_mode=False)
+  )
+  (conv_2): Sequential(
+    (0): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (1): MaxPool2d(kernel_size=(2, 2), stride=2, padding=0, dilation=1, ceil_mode=False)
+  )
+  (conv_3): Sequential(
+    (0): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (1): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1))
+        (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (2): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (3): MaxPool2d(kernel_size=(2, 2), stride=2, padding=0, dilation=1, ceil_mode=False)
+  )
+  (conv_4): Sequential(
+    (0): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (1): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1))
+        (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (2): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+  )
+  (maxpool_4): MaxPool2d(kernel_size=(2, 2), stride=2, padding=0, dilation=1, ceil_mode=False)
+  (conv_5): Sequential(
+    (0): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (1): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
+        (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (2): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (3): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
+        (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (4): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+  )
+  (maxpool_5): MaxPool2d(kernel_size=(2, 2), stride=2, padding=0, dilation=1, ceil_mode=False)
+  (conv_6): Sequential(
+    (0): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(512, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (1): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1))
+        (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (2): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(512, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (3): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1))
+        (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+    (4): Conv_BN_LeakyReLU(
+      (convs): Sequential(
+        (0): Conv2d(512, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): LeakyReLU(negative_slope=0.1, inplace=True)
+      )
+    )
+  )
+)
