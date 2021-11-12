@@ -226,7 +226,6 @@ def resnet(cfg, pretrained=False, **kwargs):
         dd = model.state_dict()
         for k in new_state_dict.keys():
             if k in dd.keys() and not k.startswith('fc'):
-                print('yes')
                 dd[k] = new_state_dict[k]
         model.load_state_dict(dd)
     return model
