@@ -185,6 +185,31 @@ class ResNet(torch.nn.Module):
 
         return x
 
+    def get_eval_predictions(self, info, detections):
+        result = []
+        for detection in detections:
+            w, h = info['width'], info['height']
+            boxes, cls_indexs, probs = decoder(detection)
+
+            for i, box in enumerate(boxes):
+                # if cls_indexs[i] == 19:
+                #     print("OK")
+
+                prob = probs[i]
+                prob = float(prob)
+                if prob >= self.cfg['base']['conf_threshold']:
+                    x1 = int(box[0] * w)
+                    x2 = int(box[2] * w)
+                    y1 = int(box[1] * h)
+                    y2 = int(box[3] * h)
+
+                    result.append([(x1, y1), (x2, y2), int(cls_indexs[i]), self.cfg.classname(int(cls_indexs[i])), prob])
+
+        re_boxes = [[] for _ in range(len(self.cfg.class_keys()) + 1)]
+        for (x1, y1), (x2, y2), class_id, class_name, prob in result: #image_id is actually image_path
+            re_boxes[class_id+1].append([x1, y1, x2, y2, prob])
+
+        return re_boxes
 
 def resnet(pretrained=False, **kwargs):
     """Constructs a ResNet-50 model.
