@@ -29,7 +29,7 @@ model_urls = {
 
 @MODEL_ZOO.register()
 def yolov1_resnet(cfg: DetectConfig):
-    return resnet(cfg, False)
+    return resnet(cfg, True)
 
 
 @MODEL_ZOO.register()
