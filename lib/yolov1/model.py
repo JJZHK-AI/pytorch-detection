@@ -220,7 +220,15 @@ def resnet(cfg, pretrained=False, **kwargs):
     """
     model = ResNet(cfg, Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(torch.utils.model_zoo.load_url(model_urls['resnet50']))
+        # model.load_state_dict(torch.utils.model_zoo.load_url(model_urls['resnet50']))
+        resnet = tv.models.resnet50(pretrained=True)
+        new_state_dict = resnet.state_dict()
+        dd = model.state_dict()
+        for k in new_state_dict.keys():
+            if k in dd.keys() and not k.startswith('fc'):
+                print('yes')
+                dd[k] = new_state_dict[k]
+        model.load_state_dict(dd)
     return model
 
 
