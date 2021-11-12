@@ -29,7 +29,7 @@ $300 \times 300$
 
 |            |  YOLOv1 |  YOLOv2 |  YOLOv3 |  YOLOv4 |  YOLOv5 |
 | ---------- | :-----: | :-----: | :-----: | :-----: | :-----: |
-|   VOC-mAP  |         |         |         |         |         |
+|   VOC-mAP  |  66.1%  |         |         |         |         |
 |  VOC-Image |         |         |         |         |         |
 |  COCO-mAP  |         |         |         |         |         |
 | COCO-Image |         |         |         | ![avatar](result/yolov4_voc_608.jpg) |         |
