@@ -12,6 +12,7 @@ import argparse
 import os
 from jjzhk.config import DetectConfig
 from lib.yolov4.yolov4_solver import YOLOV4Solver
+import torchvision as tv
 
 
 if torch.cuda.is_available():
