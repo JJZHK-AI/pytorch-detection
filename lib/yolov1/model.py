@@ -247,25 +247,7 @@ class ResNet50(torch.nn.Module):
         self.conv3 = torch.nn.Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         self.bn3 = torch.nn.BatchNorm2d(256)
         self.relu3 = torch.nn.LeakyReLU(negative_slope=0.1)
-        self.conv4 = torch.nn.Conv2d(256, cfg['net']['output_channel'], kernel_size=(1, 1), stride=(1, 1))
-
-        # self.extra = torch.nn.ModuleList()
-        #
-        # extra = [
-        #     torch.nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
-        #     torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
-        #     torch.nn.Conv2d(512, 1024, kernel_size=(3, 3), padding=(1, 1)),
-        #     torch.nn.Conv2d(1024, 512, kernel_size=(1, 1)),
-        #     torch.nn.Conv2d(512, 1024, kernel_size=(3, 3), padding=(1, 1)),
-        #     torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1)),
-        #     torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
-        #
-        #     torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1)),
-        #     torch.nn.Conv2d(1024, 1024, kernel_size=(3, 3), padding=(1, 1))
-        # ]
-        #
-        # for layer in extra:
-        #     self.extra.append(layer)
+        self.conv4 = torch.nn.Conv2d(256, 2 * 5 + cfg['dataset']['classno'], kernel_size=(1, 1), stride=(1, 1))
 
     def forward(self, x):
         output = x
@@ -284,7 +266,8 @@ class ResNet50(torch.nn.Module):
         output = self.conv2(output)
         output = self.bn2(output)
         output = self.relu2(output)
-        output = self.maxpool(output)
+        if self.cfg['net']['cell_number'] == 7:
+            output = self.maxpool(output)
         output = self.conv3(output)
         output = self.bn3(output)
         output = self.relu3(output)

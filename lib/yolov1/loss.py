@@ -29,7 +29,7 @@ class yoloLoss(nn.Module):
         self.B = 2
         self.l_coord = 5
         self.l_noobj = 0.5
-        self.final_output_channel = self.cfg['net']['output_channel']
+        self.final_output_channel = 2 * 5 + self.cfg['dataset']['classno']
 
     def compute_iou(self, box1, box2):
         '''Compute the intersection over union of two set of boxes, each box is [x1,y1,x2,y2].

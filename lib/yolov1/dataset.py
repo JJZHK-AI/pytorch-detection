@@ -84,8 +84,8 @@ class YoloV1Detection(DataSetBase):
         labels (tensor) [...]
         return 7x7x30
         '''
-        grid_num = 7
-        target = torch.zeros((grid_num, grid_num, 30))
+        grid_num = self.cfg['net']['cell_number']
+        target = torch.zeros((grid_num, grid_num, 2 * 5 + self.cfg['dataset']['classno']))
         cell_size = 1. / grid_num
         wh = boxes[:, 2:] - boxes[:, :2]
         cxcy = (boxes[:, 2:] + boxes[:, :2]) / 2
