@@ -45,7 +45,7 @@ class YoloV1Detection(DataSetBase):
         target = np.asarray(target)
         if self.phase == 'train':
             labels = torch.Tensor(target[:, 0]) + 1  # 取出来的label是0开始的，所以需要加1
-            boxes = torch.Tensor(target[:, 1:])
+            boxes = torch.Tensor(target[:, 1:5])
             img, boxes = random_flip(img, boxes)
             img, boxes = randomScale(img, boxes)
             img = randomBlur(img)
