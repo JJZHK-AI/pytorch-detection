@@ -16,12 +16,10 @@ import math
 import json
 import os
 
-from lib.utils.util import write_voc_results_file, do_python_eval
+from lib.utils.util import write_voc_results_file, do_python_eval, write_coco_results_file, do_detection_eval
 from jjzhk.config import DetectConfig
 from lib.dataset.data_zoo import DATASET_ZOO
 from jjzhk.dataset import TestData, VOCData, COCOData, DataSetBase
-from pycocotools.cocoeval import COCOeval
-from pycocotools.coco import COCO
 
 
 @DATASET_ZOO.register()
@@ -145,96 +143,13 @@ class COCODetection(SSDDetection):
                                              self.coco_name +
                                              '_results'))
         res_file += '.json'
-        self.write_coco_results_file(boxes, res_file, infos)
+        write_coco_results_file(self.cfg, boxes,
+                                res_file, infos,
+                                dict(zip([c['name'] for c in self.cats],self.dataset.coco.getCatIds())),
+                                )
         # Only do evaluation on non-test sets
         if self.coco_name.find('test') == -1:
-            return self.do_detection_eval(res_file)
-
-    def write_coco_results_file(self, all_boxes, res_file, infos):
-        # [{"image_id": 42,
-        #   "category_id": 18,
-        #   "bbox": [258.15,41.29,348.26,243.78],
-        #   "score": 0.236}, ...]
-        results = []
-
-        class_to_coco_cat_id = dict(zip([c['name'] for c in self.cats],
-                                        self.dataset.coco.getCatIds()))
-
-        for cls_ind, cls in enumerate(self.classes):
-            if cls == '__background__':
-                continue
-            print('Collecting {} results ({:d}/{:d})'.format(cls, cls_ind,
-                                                             len(self.classes) - 1))
-            coco_cat_id = class_to_coco_cat_id[cls]
-            results.extend(self.coco_results_one_category(all_boxes[cls_ind],
-                                                     coco_cat_id, infos))
-            '''
-            if cls_ind ==30:
-                res_f = res_file+ '_1.json'
-                print('Writing results json to {}'.format(res_f))
-                with open(res_f, 'w') as fid:
-                    json.dump(results, fid)
-                results = []
-            '''
-        # res_f2 = res_file+'_2.json'
-        print('Writing results json to {}'.format(res_file))
-        with open(res_file, 'w') as fid:
-            json.dump(results, fid)
-
-    def coco_results_one_category(self, boxes, cat_id, infos):
-        results = []
-        for im_ind, info in enumerate(infos):
-            dets = np.array(boxes[im_ind]).astype(np.float)
-            if list(dets) == []:
-                continue
-            scores = dets[:, -1]
-            xs = dets[:, 0]
-            ys = dets[:, 1]
-            ws = dets[:, 2] - xs + 1
-            hs = dets[:, 3] - ys + 1
-            results.extend(
-                [{'image_id': info['img_id'],
-                  'category_id': cat_id,
-                  'bbox': [xs[k], ys[k], ws[k], hs[k]],
-                  'score': scores[k]} for k in range(dets.shape[0])])
-        return results
-
-    def do_detection_eval(self, res_file):
-        coco = COCO(self.dataset.annFile)
-        ann_type = 'bbox'
-        coco_dt = coco.loadRes(res_file)
-        coco_eval = COCOeval(coco, coco_dt, ann_type)
-        coco_eval.evaluate()
-        coco_eval.accumulate()
-        return self._print_detection_eval_metrics(coco_eval)
-
-    def _print_detection_eval_metrics(self, coco_eval):
-        IoU_lo_thresh = 0.5
-        IoU_hi_thresh = 0.95
-
-        def _get_thr_ind(coco_eval, thr):
-            ind = np.where((coco_eval.params.iouThrs > thr - 1e-5) &
-                           (coco_eval.params.iouThrs < thr + 1e-5))[0][0]
-            iou_thr = coco_eval.params.iouThrs[ind]
-            assert np.isclose(iou_thr, thr)
-            return ind
-
-        ind_lo = _get_thr_ind(coco_eval, IoU_lo_thresh)
-        ind_hi = _get_thr_ind(coco_eval, IoU_hi_thresh)
-        precision = \
-            coco_eval.eval['precision'][ind_lo:(ind_hi + 1), :, :, 0, 2]
-        ap_default = np.mean(precision[precision > -1])
-
-        mAP = ap_default
-        infos = {}
-        for cls_ind, cls in enumerate(self.classes):
-            if cls == '__background__':
-                continue
-            precision = coco_eval.eval['precision'][ind_lo:(ind_hi + 1), :, cls_ind - 1, 0, 2]
-            ap = np.mean(precision[precision > -1])
-
-            infos[cls] = ap
-        return mAP, infos
+            return do_detection_eval(self.cfg, self.dataset.annFile, res_file)
 
 
 class preproc(object):

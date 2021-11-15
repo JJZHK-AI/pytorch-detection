@@ -16,12 +16,18 @@ from jjzhk.config import DetectConfig
 from lib.yolov1.arguments import random_flip, randomBlur, randomCrop, randomScale, RandomBrightness
 from lib.yolov1.arguments import RandomHue, RandomSaturation, randomShift, BGR2RGB, subMean
 import cv2
-from lib.utils.util import write_voc_results_file, do_python_eval
+import os
+from lib.utils.util import write_voc_results_file, do_python_eval, write_coco_results_file, do_detection_eval
 
 
 @DATASET_ZOO.register()
 def yolov1_voc(cfg, phase):
     return VOCDetection(cfg, phase)
+
+
+@DATASET_ZOO.register()
+def yolov1_coco(cfg, phase):
+    return COCODetection(cfg, phase)
 
 
 class YoloV1Detection(DataSetBase):
@@ -132,3 +138,31 @@ class VOCDetection(YoloV1Detection):
     def evaluate_detections(self, boxes, output_dir, infos):
         write_voc_results_file(self.cfg, output_dir, boxes, infos)
         return do_python_eval(self.cfg, infos, output_dir)
+
+
+class COCODetection(YoloV1Detection):
+    def __init__(self, cfg: DetectConfig, phase):
+        super(COCODetection, self).__init__(cfg, phase)
+
+    def __init_dataset__(self):
+        if self.phase == "train":
+            return COCOData(self.cfg, "train")
+        elif self.phase == "eval":
+            return COCOData(self.cfg, "test")
+        elif self.phase == "test":
+            return TestData(cfg=self.cfg)
+        else:
+            raise Exception("phase must be train, eval, test")
+
+    def evaluate_detections(self, boxes, output_dir, infos):
+        res_file = os.path.join(output_dir, ('detections_' +
+                                             self.coco_name +
+                                             '_results'))
+        res_file += '.json'
+        write_coco_results_file(self.cfg, boxes,
+                                res_file, infos,
+                                dict(zip([c['name'] for c in self.cats],self.dataset.coco.getCatIds())),
+                                )
+        # Only do evaluation on non-test sets
+        if self.coco_name.find('test') == -1:
+            return do_detection_eval(self.cfg, self.dataset.annFile, res_file)
