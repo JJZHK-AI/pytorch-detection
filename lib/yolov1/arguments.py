@@ -50,7 +50,7 @@ def randomCrop(bgr,boxes,labels):
         mask = (mask1 & mask2).view(-1,1)
 
         boxes_in = boxes[mask.expand_as(boxes)].view(-1,4)
-        if(len(boxes_in)==0):
+        if len(boxes_in)==0:
             return bgr,boxes,labels
         box_shift = torch.FloatTensor([[x,y,x,y]]).expand_as(boxes_in).to(device)
 

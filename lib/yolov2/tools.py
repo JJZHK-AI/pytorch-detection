@@ -1,7 +1,7 @@
 import numpy as np
-from data import *
 import torch.nn as nn
 import torch.nn.functional as F
+import torch
 
 # We use ignore thresh to decide which anchor box can be kept.
 ignore_thresh = 0.5
@@ -16,11 +16,11 @@ class MSEWithLogitsLoss(nn.Module):
         inputs = torch.sigmoid(logits)
 
         # We ignore those whose tarhets == -1.0. 
-        pos_id = (mask==1.0).float()
-        neg_id = (mask==0.0).float()
-        pos_loss = pos_id * (inputs - targets)**2
-        neg_loss = neg_id * (inputs)**2
-        loss = 5.0*pos_loss + 1.0*neg_loss
+        pos_id = (mask == 1.0).float()
+        neg_id = (mask == 0.0).float()
+        pos_loss = pos_id * (inputs - targets) ** 2
+        neg_loss = neg_id * inputs ** 2
+        loss = 5.0 * pos_loss + 1.0 * neg_loss
 
         if self.reduction == 'mean':
             batch_size = logits.size(0)
@@ -49,16 +49,16 @@ def compute_iou(anchor_boxes, gt_box):
     ab_x1y1_x2y2[:, 2] = anchor_boxes[:, 0] + anchor_boxes[:, 2] / 2  # xmax
     ab_x1y1_x2y2[:, 3] = anchor_boxes[:, 1] + anchor_boxes[:, 3] / 2  # ymax
     w_ab, h_ab = anchor_boxes[:, 2], anchor_boxes[:, 3]
-    
+
     # gt_box : 
     # We need to expand gt_box(ndarray) to the shape of anchor_boxes(ndarray), in order to compute IoU easily. 
     gt_box_expand = np.repeat(gt_box, len(anchor_boxes), axis=0)
 
     gb_x1y1_x2y2 = np.zeros([len(anchor_boxes), 4])
-    gb_x1y1_x2y2[:, 0] = gt_box_expand[:, 0] - gt_box_expand[:, 2] / 2 # xmin
-    gb_x1y1_x2y2[:, 1] = gt_box_expand[:, 1] - gt_box_expand[:, 3] / 2 # ymin
-    gb_x1y1_x2y2[:, 2] = gt_box_expand[:, 0] + gt_box_expand[:, 2] / 2 # xmax
-    gb_x1y1_x2y2[:, 3] = gt_box_expand[:, 1] + gt_box_expand[:, 3] / 2 # ymin
+    gb_x1y1_x2y2[:, 0] = gt_box_expand[:, 0] - gt_box_expand[:, 2] / 2  # xmin
+    gb_x1y1_x2y2[:, 1] = gt_box_expand[:, 1] - gt_box_expand[:, 3] / 2  # ymin
+    gb_x1y1_x2y2[:, 2] = gt_box_expand[:, 0] + gt_box_expand[:, 2] / 2  # xmax
+    gb_x1y1_x2y2[:, 3] = gt_box_expand[:, 1] + gt_box_expand[:, 3] / 2  # ymin
     w_gt, h_gt = gt_box_expand[:, 2], gt_box_expand[:, 3]
 
     # Then we compute IoU between anchor_box and gt_box
@@ -69,7 +69,7 @@ def compute_iou(anchor_boxes, gt_box):
     S_I = I_h * I_w
     U = S_gt + S_ab - S_I + 1e-20
     IoU = S_I / U
-    
+
     return IoU
 
 
@@ -85,10 +85,10 @@ def set_anchors(anchor_size):
     """
     anchor_number = len(anchor_size)
     anchor_boxes = np.zeros([anchor_number, 4])
-    for index, size in enumerate(anchor_size): 
+    for index, size in enumerate(anchor_size):
         anchor_w, anchor_h = size
         anchor_boxes[index] = np.array([0, 0, anchor_w, anchor_h])
-    
+
     return anchor_boxes
 
 
@@ -102,14 +102,14 @@ def generate_txtytwth(gt_label, w, h, s, all_anchor_size):
 
     if box_w < 1. or box_h < 1.:
         # print('A dirty data !!!')
-        return False    
+        return False
 
-    # map the center, width and height to the feature map size
+        # map the center, width and height to the feature map size
     c_x_s = c_x / s
     c_y_s = c_y / s
     box_ws = box_w / s
     box_hs = box_h / s
-    
+
     # the grid cell location
     grid_x = int(c_x_s)
     grid_y = int(c_y_s)
@@ -131,17 +131,17 @@ def generate_txtytwth(gt_label, w, h, s, all_anchor_size):
         tw = np.log(box_ws / p_w)
         th = np.log(box_hs / p_h)
         weight = 2.0 - (box_w / w) * (box_h / h)
-        
+
         result.append([index, grid_x, grid_y, tx, ty, tw, th, weight, xmin, ymin, xmax, ymax])
-        
+
         return result
-    
+
     else:
         # There are more than one anchor boxes whose IoU are higher than ignore thresh.
         # But we only assign only one anchor box whose IoU is the best(objectness target is 1) and ignore other 
         # anchor boxes whose(we set their objectness as -1 which means we will ignore them during computing obj loss )
         # iou_ = iou * iou_mask
-        
+
         # We get the index of the best IoU
         best_index = np.argmax(iou)
         for index, iou_m in enumerate(iou_mask):
@@ -153,13 +153,13 @@ def generate_txtytwth(gt_label, w, h, s, all_anchor_size):
                     tw = np.log(box_ws / p_w)
                     th = np.log(box_hs / p_h)
                     weight = 2.0 - (box_w / w) * (box_h / h)
-                    
+
                     result.append([index, grid_x, grid_y, tx, ty, tw, th, weight, xmin, ymin, xmax, ymax])
                 else:
                     # we ignore other anchor boxes even if their iou scores all higher than ignore thresh
                     result.append([index, grid_x, grid_y, 0., 0., 0., 0., -1.0, 0., 0., 0., 0.])
 
-        return result 
+        return result
 
 
 def gt_creator(input_size, stride, label_lists, anchor_size):
@@ -179,7 +179,7 @@ def gt_creator(input_size, stride, label_lists, anchor_size):
     # prepare the all empty gt datas
     batch_size = len(label_lists)
     h = w = input_size
-    
+
     # We  make gt labels by anchor-free method and anchor-based method.
     ws = w // stride
     hs = h // stride
@@ -189,7 +189,7 @@ def gt_creator(input_size, stride, label_lists, anchor_size):
     all_anchor_size = anchor_size
     anchor_number = len(all_anchor_size)
 
-    gt_tensor = np.zeros([batch_size, hs, ws, anchor_number, 1+1+4+1+4])
+    gt_tensor = np.zeros([batch_size, hs, ws, anchor_number, 1 + 1 + 4 + 1 + 4])
 
     for batch_index in range(batch_size):
         for gt_label in label_lists[batch_index]:
@@ -210,7 +210,7 @@ def gt_creator(input_size, stride, label_lists, anchor_size):
                         gt_tensor[batch_index, grid_y, grid_x, index, 0] = -1.0
                         gt_tensor[batch_index, grid_y, grid_x, index, 6] = -1.0
 
-    gt_tensor = gt_tensor.reshape(batch_size, hs * ws * anchor_number, 1+1+4+1+4)
+    gt_tensor = gt_tensor.reshape(batch_size, hs * ws * anchor_number, 1 + 1 + 4 + 1 + 4)
 
     return gt_tensor
 
@@ -226,8 +226,8 @@ def multi_gt_creator(input_size, strides, label_lists, anchor_size):
     anchor_number = len(all_anchor_size) // num_scale
 
     for s in strides:
-        gt_tensor.append(np.zeros([batch_size, h//s, w//s, anchor_number, 1+1+4+1+4]))
-        
+        gt_tensor.append(np.zeros([batch_size, h // s, w // s, anchor_number, 1 + 1 + 4 + 1 + 4]))
+
     # generate gt datas    
     for batch_index in range(batch_size):
         for gt_label in label_lists[batch_index]:
@@ -242,9 +242,9 @@ def multi_gt_creator(input_size, strides, label_lists, anchor_size):
 
             if box_w < 1. or box_h < 1.:
                 # print('A dirty data !!!')
-                continue    
+                continue
 
-            # compute the IoU
+                # compute the IoU
             anchor_boxes = set_anchors(all_anchor_size)
             gt_box = np.array([[0, 0, box_w, box_h]])
             iou = compute_iou(anchor_boxes, gt_box)
@@ -280,13 +280,13 @@ def multi_gt_creator(input_size, strides, label_lists, anchor_size):
                     gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 2:6] = np.array([tx, ty, tw, th])
                     gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 6] = weight
                     gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 7:] = np.array([xmin, ymin, xmax, ymax])
-            
+
             else:
                 # There are more than one anchor boxes whose IoU are higher than ignore thresh.
                 # But we only assign only one anchor box whose IoU is the best(objectness target is 1) and ignore other 
                 # anchor boxes whose(we set their objectness as -1 which means we will ignore them during computing obj loss )
                 # iou_ = iou * iou_mask
-                
+
                 # We get the index of the best IoU
                 best_index = np.argmax(iou)
                 for index, iou_m in enumerate(iou_mask):
@@ -316,8 +316,9 @@ def multi_gt_creator(input_size, strides, label_lists, anchor_size):
                                 gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 1] = gt_class
                                 gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 2:6] = np.array([tx, ty, tw, th])
                                 gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 6] = weight
-                                gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 7:] = np.array([xmin, ymin, xmax, ymax])
-            
+                                gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 7:] = np.array(
+                                    [xmin, ymin, xmax, ymax])
+
                         else:
                             # we ignore other anchor boxes even if their iou scores are higher than ignore thresh
                             # s_indx, ab_ind = index // num_scale, index % num_scale
@@ -331,9 +332,9 @@ def multi_gt_creator(input_size, strides, label_lists, anchor_size):
                             gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 0] = -1.0
                             gt_tensor[s_indx][batch_index, grid_y, grid_x, ab_ind, 6] = -1.0
 
-    gt_tensor = [gt.reshape(batch_size, -1, 1+1+4+1+4) for gt in gt_tensor]
+    gt_tensor = [gt.reshape(batch_size, -1, 1 + 1 + 4 + 1 + 4) for gt in gt_tensor]
     gt_tensor = np.concatenate(gt_tensor, 1)
-    
+
     return gt_tensor
 
 
@@ -380,13 +381,15 @@ def loss(pred_conf, pred_cls, pred_txtytwth, pred_iou, label):
     batch_size = pred_conf.size(0)
     # objectness loss
     conf_loss = conf_loss_function(pred_conf, gt_conf, gt_obj)
-    
+
     # class loss
     cls_loss = torch.sum(cls_loss_function(pred_cls, gt_cls) * gt_mask) / batch_size
-    
+
     # box loss
-    txty_loss = torch.sum(torch.sum(txty_loss_function(pred_txty, gt_txty), dim=-1) * gt_box_scale_weight * gt_mask) / batch_size
-    twth_loss = torch.sum(torch.sum(twth_loss_function(pred_twth, gt_twth), dim=-1) * gt_box_scale_weight * gt_mask) / batch_size
+    txty_loss = torch.sum(
+        torch.sum(txty_loss_function(pred_txty, gt_txty), dim=-1) * gt_box_scale_weight * gt_mask) / batch_size
+    twth_loss = torch.sum(
+        torch.sum(twth_loss_function(pred_twth, gt_twth), dim=-1) * gt_box_scale_weight * gt_mask) / batch_size
     bbox_loss = txty_loss + twth_loss
 
     # iou loss
@@ -397,9 +400,9 @@ def loss(pred_conf, pred_cls, pred_txtytwth, pred_iou, label):
 
 if __name__ == "__main__":
     gt_box = np.array([[0.0, 0.0, 10, 10]])
-    anchor_boxes = np.array([[0.0, 0.0, 10, 10], 
-                             [0.0, 0.0, 4, 4], 
-                             [0.0, 0.0, 8, 8], 
+    anchor_boxes = np.array([[0.0, 0.0, 10, 10],
+                             [0.0, 0.0, 4, 4],
+                             [0.0, 0.0, 8, 8],
                              [0.0, 0.0, 16, 16]
                              ])
     iou = compute_iou(anchor_boxes, gt_box)

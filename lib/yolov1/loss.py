@@ -65,10 +65,10 @@ class yoloLoss(nn.Module):
         return iou
 
     def forward(self, pred_tensor, target_tensor):
-        '''
+        """
         pred_tensor: (tensor) size(batchsize,S,S,Bx5+20=30) [x,y,w,h,c]
         target_tensor: (tensor) size(batchsize,S,S,30)
-        '''
+        """
         N = pred_tensor.size()[0]
         coo_mask = target_tensor[:, :, :, 4] > 0
         noo_mask = target_tensor[:, :, :, 4] == 0
@@ -122,7 +122,7 @@ class yoloLoss(nn.Module):
             # intersection over union (IOU) between the predicted box
             # and the ground truth
             #####
-            box_target_iou[i + max_index, torch.LongTensor([4]).to(device)] = (max_iou).data.to(device)
+            box_target_iou[i + max_index, torch.LongTensor([4]).to(device)] = max_iou.data.to(device)
         box_target_iou = Variable(box_target_iou).to(device)
         # 1.response loss
         coo_response_mask = coo_response_mask.bool()
@@ -130,8 +130,8 @@ class yoloLoss(nn.Module):
         box_target_response_iou = box_target_iou[coo_response_mask].view(-1, 5)
         box_target_response = box_target[coo_response_mask].view(-1, 5)
         contain_loss = F.mse_loss(box_pred_response[:, 4], box_target_response_iou[:, 4], reduction='sum')
-        loc_loss = F.mse_loss(box_pred_response[:, :2], box_target_response[:, :2], reduction='sum') + F.mse_loss(
-            torch.sqrt(box_pred_response[:, 2:4]), torch.sqrt(box_target_response[:, 2:4]), reduction='sum')
+        loc_loss = F.mse_loss(box_pred_response[:, :2], box_target_response[:, :2], reduction='sum') \
+                   + F.mse_loss(torch.sqrt(box_pred_response[:, 2:4]), torch.sqrt(box_target_response[:, 2:4]), reduction='sum')
         # 2.not response loss
         coo_not_response_mask = coo_not_response_mask.bool()
         box_pred_not_response = box_pred[coo_not_response_mask].view(-1, 5)

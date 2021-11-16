@@ -13,6 +13,7 @@ import os
 from jjzhk.config import DetectConfig
 from lib.yolov1.yolov1_solver import Yolov1Solver
 
+torch.seed(1)
 
 if torch.cuda.is_available():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')

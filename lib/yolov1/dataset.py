@@ -85,11 +85,11 @@ class YoloV1Detection(DataSetBase):
     #     return 1
 
     def encoder(self, boxes, labels):
-        '''
+        """
         boxes (tensor) [[x1,y1,x2,y2],[]]
         labels (tensor) [...]
         return 7x7x30
-        '''
+        """
         grid_num = self.cfg['net']['cell_number']
         target = torch.zeros((grid_num, grid_num, 2 * 5 + self.cfg['dataset']['classno']))
         cell_size = 1. / grid_num
