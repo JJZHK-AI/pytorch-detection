@@ -10,22 +10,31 @@
 from lib.model.model_zoo import MODEL_ZOO
 from jjzhk.config import DetectConfig
 import torch
-from lib.backbone.util import create_modules
-from lib.yolov2.layers import yolov2_create_modules
 import lib.yolov2.tools as tools
-
+import numpy as np
+from jjzhk.device import device
 
 @MODEL_ZOO.register()
-def darknet(cfg: DetectConfig, type: int):
-    return YOLOV2D19(cfg)
+def yolov2_darknet19(cfg: DetectConfig):
+    return YOLOV2_Net(cfg, "darknet19")
 
 
-class YOLOV2D19(torch.nn.Module):
-    def __init__(self, cfg: DetectConfig):
-        super(YOLOV2D19, self).__init__()
+class YOLOV2_Net(torch.nn.Module):
+    def __init__(self, cfg: DetectConfig, backbone_name):
+        super(YOLOV2_Net, self).__init__()
 
         self.cfg = cfg
-        self.backbone = DarkNet_19(cfg)
+        self.stride = 32
+        self.device = device
+        self.conf_thresh = self.cfg['base']['conf_threshold']
+        self.nms_thresh = self.cfg['base']['nms_thresh']
+        self.input_size = self.cfg['net']['imagesize'][0]
+        if backbone_name == 'darknet19':
+            self.backbone = DarkNet_19(cfg)
+        self.num_anchors = len(self.cfg['base']['anchors'])
+        self.anchor_size = torch.tensor(self.cfg['base']['anchors'])
+        self.num_classes = self.cfg['dataset']['classno']
+        self.grid_cell, self.all_anchor_wh = self.create_grid(self.input_size)
 
         self.convsets_1 = torch.nn.Sequential(
             Conv(1024, 1024, k=3, p=1),
@@ -40,7 +49,7 @@ class YOLOV2D19(torch.nn.Module):
         # prediction layer
         self.pred = torch.nn.Conv2d(1024, self.num_anchors * (1 + 4 + self.num_classes), kernel_size=1)
 
-    def forward(self, x, target=None):
+    def forward(self, x, target=None, trainable=False):
         # backbone主干网络
         _, c4, c5 = self.backbone(x)
 
@@ -74,7 +83,7 @@ class YOLOV2D19(torch.nn.Module):
         txtytwth_pred = prediction[:, :, (1 + self.num_classes) * self.num_anchors:].contiguous()
 
         # train
-        if self.trainable:
+        if trainable:
             txtytwth_pred = txtytwth_pred.view(B, H * W, self.num_anchors, 4)
             # decode bbox
             x1y1x2y2_pred = (self.decode_boxes(txtytwth_pred) / self.input_size).view(-1, 4)
@@ -125,16 +134,171 @@ class YOLOV2D19(torch.nn.Module):
 
                 return bboxes, scores, cls_inds
 
+    def postprocess(self, bboxes, scores):
+        """
+        bboxes: (HxW, 4), bsize = 1
+        scores: (HxW, num_classes), bsize = 1
+        """
+
+        cls_inds = np.argmax(scores, axis=1)
+        scores = scores[(np.arange(scores.shape[0]), cls_inds)]
+
+        # threshold
+        keep = np.where(scores >= self.conf_thresh)
+        bboxes = bboxes[keep]
+        scores = scores[keep]
+        cls_inds = cls_inds[keep]
+
+        # NMS
+        keep = np.zeros(len(bboxes), dtype=np.int)
+        for i in range(self.num_classes):
+            inds = np.where(cls_inds == i)[0]
+            if len(inds) == 0:
+                continue
+            c_bboxes = bboxes[inds]
+            c_scores = scores[inds]
+            c_keep = self.nms(c_bboxes, c_scores)
+            keep[inds[c_keep]] = 1
+
+        keep = np.where(keep > 0)
+        bboxes = bboxes[keep]
+        scores = scores[keep]
+        cls_inds = cls_inds[keep]
+
+        return bboxes, scores, cls_inds
+
+    def create_grid(self, input_size):
+        w, h = input_size, input_size
+        # generate grid cells
+        ws, hs = w // self.stride, h // self.stride
+        grid_y, grid_x = torch.meshgrid([torch.arange(hs), torch.arange(ws)])
+        grid_xy = torch.stack([grid_x, grid_y], dim=-1).float()
+        grid_xy = grid_xy.view(1, hs*ws, 1, 2).to(self.device)
+
+        # generate anchor_wh tensor
+        anchor_wh = self.anchor_size.repeat(hs*ws, 1, 1).unsqueeze(0).to(self.device)
+
+        return grid_xy, anchor_wh
+
+    def decode_boxes(self, txtytwth_pred, requires_grad=False):
+        """将txtytwth预测换算成边界框的左上角点坐标和右下角点坐标 \n
+            Input: \n
+                txtytwth_pred : [B, H*W, anchor_n, 4] \n
+            Output: \n
+                x1y1x2y2_pred : [B, H*W*anchor_n, 4] \n
+        """
+        # 获得边界框的中心点坐标和宽高
+        xywh_pred = self.decode_xywh(txtytwth_pred)
+
+        # 将中心点坐标和宽高换算成边界框的左上角点坐标和右下角点坐标
+        x1y1x2y2_pred = torch.zeros_like(xywh_pred, requires_grad=requires_grad)
+        x1y1x2y2_pred[:, :, 0] = (xywh_pred[:, :, 0] - xywh_pred[:, :, 2] / 2)
+        x1y1x2y2_pred[:, :, 1] = (xywh_pred[:, :, 1] - xywh_pred[:, :, 3] / 2)
+        x1y1x2y2_pred[:, :, 2] = (xywh_pred[:, :, 0] + xywh_pred[:, :, 2] / 2)
+        x1y1x2y2_pred[:, :, 3] = (xywh_pred[:, :, 1] + xywh_pred[:, :, 3] / 2)
+
+        return x1y1x2y2_pred
+
+    def decode_xywh(self, txtytwth_pred):
+        """
+            Input:
+                txtytwth_pred : [B, H*W, anchor_n, 4] containing [tx, ty, tw, th]
+            Output:
+                xywh_pred : [B, H*W*anchor_n, 4] containing [xmin, ymin, xmax, ymax]
+        """
+        # b_x = sigmoid(tx) + gride_x,  b_y = sigmoid(ty) + gride_y
+        B, HW, ab_n, _ = txtytwth_pred.size()
+        xy_pred = torch.sigmoid(txtytwth_pred[:, :, :, :2]) + self.grid_cell
+        # b_w = anchor_w * exp(tw),     b_h = anchor_h * exp(th)
+        wh_pred = torch.exp(txtytwth_pred[:, :, :, 2:]) * self.all_anchor_wh
+        # [H*W, anchor_n, 4] -> [H*W*anchor_n, 4]
+        xywh_pred = torch.cat([xy_pred, wh_pred], -1).view(B, HW*ab_n, 4) * self.stride
+
+        return xywh_pred
+
+    def nms(self, dets, scores):
+        """"Pure Python NMS baseline."""
+        x1 = dets[:, 0]  # xmin
+        y1 = dets[:, 1]  # ymin
+        x2 = dets[:, 2]  # xmax
+        y2 = dets[:, 3]  # ymax
+
+        areas = (x2 - x1) * (y2 - y1)
+        order = scores.argsort()[::-1]
+
+        keep = []
+        while order.size > 0:
+            i = order[0]
+            keep.append(i)
+            # 计算交集的左上角点和右下角点的坐标
+            xx1 = np.maximum(x1[i], x1[order[1:]])
+            yy1 = np.maximum(y1[i], y1[order[1:]])
+            xx2 = np.minimum(x2[i], x2[order[1:]])
+            yy2 = np.minimum(y2[i], y2[order[1:]])
+            # 计算交集的宽高
+            w = np.maximum(1e-28, xx2 - xx1)
+            h = np.maximum(1e-28, yy2 - yy1)
+            # 计算交集的面积
+            inter = w * h
+
+            # 计算交并比
+            ovr = inter / (areas[i] + areas[order[1:]] - inter)
+            # 滤除超过nms阈值的检测框
+            inds = np.where(ovr <= self.nms_thresh)[0]
+            order = order[inds + 1]
+
+        return keep
+
+
 class DarkNet_19(torch.nn.Module):
     def __init__(self, cfg: DetectConfig):
         super(DarkNet_19, self).__init__()
         self.cfg = cfg
-        self.module_defs = self.cfg['backbone']
-        self.module_list, self.routs, self.model_summary = \
-            create_modules(self.module_defs, cfg, yolov2_create_modules)
+        self.conv_1 = torch.nn.Sequential(
+            Conv_BN_LeakyReLU(3, 32, 3, 1),
+            torch.nn.MaxPool2d((2, 2), 2),
+        )
 
-        for layer in self.module_list:
-            self.__setattr__(layer['name'], layer['layer'])
+        # output : stride = 4, c = 64
+        self.conv_2 = torch.nn.Sequential(
+            Conv_BN_LeakyReLU(32, 64, 3, 1),
+            torch.nn.MaxPool2d((2, 2), 2)
+        )
+
+        # output : stride = 8, c = 128
+        self.conv_3 = torch.nn.Sequential(
+            Conv_BN_LeakyReLU(64, 128, 3, 1),
+            Conv_BN_LeakyReLU(128, 64, 1),
+            Conv_BN_LeakyReLU(64, 128, 3, 1),
+            torch.nn.MaxPool2d((2, 2), 2)
+        )
+
+        # output : stride = 8, c = 256
+        self.conv_4 = torch.nn.Sequential(
+            Conv_BN_LeakyReLU(128, 256, 3, 1),
+            Conv_BN_LeakyReLU(256, 128, 1),
+            Conv_BN_LeakyReLU(128, 256, 3, 1),
+        )
+
+        # output : stride = 16, c = 512
+        self.maxpool_4 = torch.nn.MaxPool2d((2, 2), 2)
+        self.conv_5 = torch.nn.Sequential(
+            Conv_BN_LeakyReLU(256, 512, 3, 1),
+            Conv_BN_LeakyReLU(512, 256, 1),
+            Conv_BN_LeakyReLU(256, 512, 3, 1),
+            Conv_BN_LeakyReLU(512, 256, 1),
+            Conv_BN_LeakyReLU(256, 512, 3, 1),
+        )
+
+        # output : stride = 32, c = 1024
+        self.maxpool_5 = torch.nn.MaxPool2d((2, 2), 2)
+        self.conv_6 = torch.nn.Sequential(
+            Conv_BN_LeakyReLU(512, 1024, 3, 1),
+            Conv_BN_LeakyReLU(1024, 512, 1),
+            Conv_BN_LeakyReLU(512, 1024, 3, 1),
+            Conv_BN_LeakyReLU(1024, 512, 1),
+            Conv_BN_LeakyReLU(512, 1024, 3, 1)
+        )
 
     def forward(self, x):
         x = self.conv_1(x)
@@ -150,6 +314,18 @@ class DarkNet_19(torch.nn.Module):
         # return x
         return C_4, C_5, C_6
 
+
+class Conv_BN_LeakyReLU(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, ksize, padding=0, stride=1, dilation=1):
+        super(Conv_BN_LeakyReLU, self).__init__()
+        self.convs = torch.nn.Sequential(
+            torch.nn.Conv2d(in_channels, out_channels, ksize, padding=padding, stride=stride, dilation=dilation),
+            torch.nn.BatchNorm2d(out_channels),
+            torch.nn.LeakyReLU(0.1, inplace=True)
+        )
+
+    def forward(self, x):
+        return self.convs(x)
 
 class Conv(torch.nn.Module):
     def __init__(self, in_ch, out_ch, k=1, p=0, s=1, d=1, g=1, act=True):

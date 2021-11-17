@@ -37,7 +37,7 @@ class YOLOV4Solver(Solver):
         pass
 
     def load_check_point(self, weights, justInitBase=False):
-        self.model.load_state_dict(torch.load(os.path.join(torch.hub.get_dir(), 'checkpoints', weights), map_location='cpu'))
+        self.model.load_state_dict(torch.load(weights, map_location=device))
 
     def init_test_loader(self):
         return torch.utils.data.DataLoader(dataset=self._test_dataset_,
@@ -58,6 +58,7 @@ class YOLOV4Solver(Solver):
         pass
 
     def test_epoch(self, epoch, model):
+        bar = ProgressBar(1, len(self._test_loader_), "Detection")
         for index, (image, info) in enumerate(self._test_loader_):
             img = image.to(device)
             img = img.float()  # uint8 to fp16/32
@@ -104,7 +105,7 @@ class YOLOV4Solver(Solver):
                         "ImageName": filename.replace(".jpg", "")
                     })
 
-            print('%s Done' % s)
+            bar.show(1)
 
     def eval_epoch(self, epoch, model):
         seen = 0

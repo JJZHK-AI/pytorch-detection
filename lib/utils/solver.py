@@ -14,6 +14,7 @@ from jjzhk.device import device
 import lib.dataset as d
 from jjzhk.progressbar import ProgressBar
 from jjzhk.config import DetectConfig
+from lib.utils.util import do_python_eval
 
 
 class Solver(object):
@@ -323,4 +324,20 @@ class Solver(object):
         print("loading weights from %s" % self.cfg['net']['test_weights'])
         self._resume_checkpoint_(self.cfg['net']['test_weights'])
         self._test_epoch_(0, self.model)
+
+    def eval_mAP(self, epoch):
+        if self._eval_loader_ is None:
+            self._eval_dataset_ = self._init_dataset_('eval')
+            self._eval_loader_ = self.init_eval_loader()
+
+        infos = []
+        bar = ProgressBar(1, len(self._eval_loader_), "")
+        for i, sampler in enumerate(self._eval_loader_):
+            images, info = sampler[0], sampler[2]
+            infos.append(info[0])
+            bar.show(1)
+
+        return do_python_eval(self.cfg, infos, os.path.join(self._eval_path_, "%d" % epoch))
+
+
     #endregion

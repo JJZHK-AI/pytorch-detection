@@ -37,6 +37,30 @@ def yolov1_resnet50(cfg: DetectConfig):
     return ResNet50(cfg)
 
 
+@MODEL_ZOO.register()
+def yolov1_vgg16(cfg: DetectConfig):
+    return VGG16(cfg)
+
+
+def resnet(cfg, pretrained=False, **kwargs):
+    """Constructs a ResNet-50 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = ResNet(cfg, Bottleneck, [3, 4, 6, 3], **kwargs)
+    if pretrained:
+        # model.load_state_dict(torch.utils.model_zoo.load_url(model_urls['resnet50']))
+        resnet = tv.models.resnet50(pretrained=True)
+        new_state_dict = resnet.state_dict()
+        dd = model.state_dict()
+        for k in new_state_dict.keys():
+            if k in dd.keys() and not k.startswith('fc'):
+                dd[k] = new_state_dict[k]
+        model.load_state_dict(dd)
+    return model
+
+
 class Bottleneck(torch.nn.Module):
     expansion = 4
 
@@ -213,24 +237,6 @@ class ResNet(torch.nn.Module):
 
         return re_boxes
 
-def resnet(cfg, pretrained=False, **kwargs):
-    """Constructs a ResNet-50 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(cfg, Bottleneck, [3, 4, 6, 3], **kwargs)
-    if pretrained:
-        # model.load_state_dict(torch.utils.model_zoo.load_url(model_urls['resnet50']))
-        resnet = tv.models.resnet50(pretrained=True)
-        new_state_dict = resnet.state_dict()
-        dd = model.state_dict()
-        for k in new_state_dict.keys():
-            if k in dd.keys() and not k.startswith('fc'):
-                dd[k] = new_state_dict[k]
-        model.load_state_dict(dd)
-    return model
-
 
 class ResNet50(torch.nn.Module):
     def __init__(self, cfg):
@@ -303,3 +309,32 @@ class ResNet50(torch.nn.Module):
             re_boxes[class_id+1].append([x1, y1, x2, y2, prob])
 
         return re_boxes
+
+
+class VGG16(torch.nn.Module):
+    def __init__(self, cfg: DetectConfig):
+        super(VGG16, self).__init__()
+        self.cfg = cfg
+        self.base_model = tv.models.vgg16_bn(pretrained=True)
+
+        self.conv1 = torch.nn.Conv2d(512, 30, kernel_size=(3,3), stride=(1, 1), padding=(1, 1))
+        self.bn1 = torch.nn.BatchNorm2d(30)
+
+    def forward(self, input):
+        output = input
+        output = self.base_model.features(output) # bs, 512, 14, 14
+
+        if self.cfg['net']['cell_number'] == 7:
+            output = self.base_model.avgpool(output)
+
+        output = self.conv1(output)
+        output = self.bn1(output)
+
+        output = torch.sigmoid(output)
+        output = output.permute(0, 2, 3, 1)
+
+        return output
+
+
+
+

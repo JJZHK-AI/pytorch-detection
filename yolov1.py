@@ -21,10 +21,11 @@ if torch.cuda.is_available():
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='Project')
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
-    parser.add_argument('-model', default='resnet50', type=str, help='')
-    parser.add_argument('-datatype', default='coco', type=str, help='')
+    parser.add_argument('-model', default='vgg16', type=str, help='')
+    parser.add_argument('-datatype', default='voc', type=str, help='')
     parser.add_argument('-phase', default='train', type=str, help='')
-    # parser.add_argument('-lr',default=0.0005, type=float, help='')
+    parser.add_argument('-lr',default=0.001, type=float, help='')
+    parser.add_argument('-cell', default=7, type=int, help='')
     args = parser.parse_args(argv)
     return args
 
@@ -38,8 +39,8 @@ if __name__ == '__main__':
         os.path.join("%d" % args.imgsize, "%s" % args.datatype, "yolov1_%s.cfg" % args.model)])
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
-    # config['base']['backbone'] = args.net
-    # config['train']['learning_rate'] = args.lr
+    config['net']['cell_number'] = args.cell
+    config['train']['learning_rate'] = args.lr
 
     print('model: %s, size: %d' % (args.model, args.imgsize))
 
@@ -49,8 +50,10 @@ if __name__ == '__main__':
         solver.train()
     elif args.phase == 'eval':
         solver.eval()
-    else:
+    elif args.phase == 'test':
         solver.test()
+    else:
+        print(solver.eval_mAP(50)[0])
 
 
 
