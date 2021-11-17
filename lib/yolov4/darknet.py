@@ -7,13 +7,10 @@
 @time: 2021-09-27 11:31:31
 @desc: 
 """
-import torch
 from pathlib import Path
 import numpy as np
-from lib.backbone.util import create_modules
-from lib.yolov4.layers import yolov4_create_modules
-from lib.yolov4.utils import scale_img
-# from v4.lib.models import create_modules
+from lib.yolov4.utils import scale_img, create_modules
+import torch
 
 
 class Darknet(torch.nn.Module):
@@ -21,8 +18,8 @@ class Darknet(torch.nn.Module):
         super(Darknet, self).__init__()
         self.cfg = cfg
         self.module_defs = self.cfg['backbone']
-        self.module_list, self.routs, self.model_summary = \
-            create_modules(self.module_defs, cfg, yolov4_create_modules)
+        self.module_list, self.routs = \
+            create_modules(self.module_defs, cfg)
         self.module_list = torch.nn.ModuleList(self.module_list)
         # self.module_list, self.routs = create_modules(self.module_defs, 640, self.cfg['backbone'])
 

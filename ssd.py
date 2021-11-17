@@ -23,7 +23,7 @@ def parse_args(argv=None):
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
     parser.add_argument('-model', default='ssd', type=str, help='')
     parser.add_argument('-datatype', default='voc', type=str, help='')
-    parser.add_argument('-net', default='vgg16', type=str, help='')
+    parser.add_argument('-net', default='darknet19', type=str, help='')
     parser.add_argument('-phase', default='test', type=str, help='')
     parser.add_argument('-imgsize', default=300, type=int, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     config.load_file_list([
         "%s.cfg" % args.datatype,
         os.path.join("%d" % args.imgsize, "%s" % args.datatype, "%s" % args.model, "%s.cfg" % args.net)])
-    config.load_backbone_file(os.path.join("backbone", "%s.cfg" % args.net))
+    # config.load_backbone_file(os.path.join("backbone", "%s.cfg" % args.net))
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
     config['base']['backbone'] = args.net

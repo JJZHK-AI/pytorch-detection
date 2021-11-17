@@ -320,6 +320,7 @@ class Solver(object):
         self._eval_epoch_(0, self.model)
 
     def test(self):
+        print(self.model)
         self.phase = "test"
         print("loading weights from %s" % self.cfg['net']['test_weights'])
         self._resume_checkpoint_(self.cfg['net']['test_weights'])

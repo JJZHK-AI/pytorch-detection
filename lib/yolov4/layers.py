@@ -7,88 +7,10 @@
 @time: 2021-10-27 13:13:31
 @desc: 
 """
+import math
+import numpy as np
 import torch
 import torch.nn.functional
-from lib.backbone.conv2d import Conv2d
-from lib.backbone.layer_zoo import  LAYER_ZOO
-from lib.backbone.util import layer_to_config
-import math
-from lib.backbone.util import get_layer
-
-
-def yolov4_create_modules(mdef, cfg, **kwargs):
-    mdef_net = cfg['net']
-    inFilters = mdef["inFilters"]
-    index = mdef["index"]
-    mdefsummary = kwargs['mdefsummary']
-    img_size = mdef_net["imagesize"]
-    output_filters = mdef['filter_list']
-
-    routs = kwargs["routs"]
-    module_list = kwargs["mlist"]
-
-    filters = output_filters[-1]
-    l = None
-
-    if mdef['type'] == 'route':
-        layers = mdef['layers']
-        filters = sum([output_filters[l + 1 if l > 0 else l] for l in layers])
-        routs.extend([index + l if l < 0 else l for l in layers])
-        l = get_layer(mdef, layers=layers)
-    elif mdef['type'] == 'shortcut':  # nn.Sequential() placeholder for 'shortcut' layer
-        layers = mdef['from']
-        filters = inFilters
-        routs.extend([index + l if l < 0 else l for l in layers])
-        l = get_layer(mdef, layers=layers, weight='weights_type' in mdef)
-    elif mdef['type'] == 'upsample':
-        l = torch.nn.Upsample(scale_factor=mdef['stride'])
-    elif mdef['type'] == 'yolo':
-        yolo_index = mdefsummary['yolo']
-        stride = [8, 16, 32, 64, 128]  # P3, P4, P5, P6, P7 strides
-        if any(x in mdef for x in ['yolov4-tiny', 'fpn', 'yolov3']):  # P5, P4, P3 strides
-            stride = [32, 16, 8]
-        layers = mdef['from'] if 'from' in mdef else []
-        modules = YOLOLayer(anchors=mdef['anchors'][mdef['mask']],  # anchor list
-                            nc=mdef['classes'],  # number of classes
-                            img_size=img_size,  # (416, 416)
-                            yolo_index=yolo_index,  # 0, 1, 2...
-                            layers=layers,  # output layers
-                            stride=stride[yolo_index])
-
-        # Initialize preceding Conv2d() bias (https://arxiv.org/pdf/1708.02002.pdf section 3.3)
-        try:
-            j = layers[yolo_index] if 'from' in mdef else -1
-            bias_ = module_list[j][0].bias  # shape(255,)
-            bias = bias_[:modules.no * modules.na].view(modules.na, -1)  # shape(3,85)
-            # bias[:, 4] += -4.5  # obj
-            bias.data[:, 4] += math.log(8 / (640 / stride[yolo_index]) ** 2)  # obj (8 objects per 640 image)
-            bias.data[:, 5:] += math.log(0.6 / (modules.nc - 0.99))  # cls (sigmoid(p) = 1/nc)
-            module_list[j][0].bias = torch.nn.Parameter(bias_, requires_grad=bias_.requires_grad)
-        except:
-            print('WARNING: smart bias initialization failure.')
-        l = modules
-    else:
-        print('Warning: Unrecognized Layer Type: ' + mdef['type'])
-    return l, filters
-
-
-@LAYER_ZOO.register(version=1)
-def convolutional(layer, **kwargs):
-    return Yolov4Conv2d(layer, **kwargs).layers()
-
-
-@LAYER_ZOO.register()
-def route(layer, **kwargs):
-    layers = kwargs['layers']
-
-    return FeatureConcat(layers=layers)
-
-
-@LAYER_ZOO.register()
-def shortcut(layer, **kwargs):
-    layers = kwargs['layers']
-    weight = kwargs['weight']
-    return WeightedFeatureFusion(layers=layers, weight=weight)
 
 
 class Swish(torch.nn.Module):
@@ -147,49 +69,6 @@ class WeightedFeatureFusion(torch.nn.Module):  # weighted sum of 2 or more layer
 
     def __str__(self):
         return "WeightedFeatureFusion(layers=%s, weight=%s)" % (self.layers, self.weight)
-
-
-class Yolov4Conv2d(Conv2d):
-    def __init__(self, layer_config, **kwargs):
-        super(Yolov4Conv2d, self).__init__(layer_config, **kwargs)
-
-    def transfer_config(self, **kwargs):
-        list = []
-        bn = self._layer_config_['batch_normalize']
-        filters = self._layer_config_['filters']
-        k = self._layer_config_['size']  # kernel size
-        stride = self._layer_config_['stride'] if 'stride' in self._layer_config_ else (
-            self._layer_config_['stride_y'], self._layer_config_['stride_x'])
-        in_filter = self._layer_config_["inFilters"]
-        layer_index = self._layer_config_['index']
-        routs = kwargs['routs']
-
-        if isinstance(k, int):  # single-size conv
-            list.append(layer_to_config("Conv2d", torch.nn.Conv2d(in_channels=in_filter, out_channels=filters,
-                                                                  kernel_size=(k, k), stride=stride,
-                                                                  padding=self._layer_config_[
-                                                                      'pad'] if 'pad' in self._layer_config_ else 0,
-                                                                  groups=self._layer_config_[
-                                                                      'groups'] if 'groups' in self._layer_config_ else 1,
-                                                                  dilation=self._layer_config_[
-                                                                      'dilation'] if 'dilation' in self._layer_config_ else 1,
-                                                                  bias=not bn)))
-
-        if bn:
-            list.append(layer_to_config("BatchNorm2d", torch.nn.BatchNorm2d(filters, eps=0.0001, momentum=0.03)))
-        else:
-            routs.append(layer_index)  # detection output (goes into yolo layer)
-
-        if self._layer_config_['activation'] == 'leaky':
-            list.append(layer_to_config("activation", torch.nn.LeakyReLU(0.1, inplace=True)))
-        elif self._layer_config_['activation'] == 'relu':
-            list.append(layer_to_config("activation", torch.nn.ReLU(inplace=True)))
-        elif self._layer_config_['activation'] == 'swish':
-            list.append(layer_to_config('activation', Swish()))
-        elif self._layer_config_['activation'] == 'mish':
-            list.append(layer_to_config('activation', Mish()))
-
-        return list
 
 
 class YOLOLayer(torch.nn.Module):
@@ -265,3 +144,343 @@ class YOLOLayer(torch.nn.Module):
             #io[..., :4] *= self.stride
             #torch.sigmoid_(io[..., 4:])
             return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as [1, 507, 85]
+
+
+class MixConv2d(torch.nn.Module):  # MixConv: Mixed Depthwise Convolutional Kernels https://arxiv.org/abs/1907.09595
+    def __init__(self, in_ch, out_ch, k=(3, 5, 7), stride=1, dilation=1, bias=True, method='equal_params'):
+        super(MixConv2d, self).__init__()
+
+        groups = len(k)
+        if method == 'equal_ch':  # equal channels per group
+            i = torch.linspace(0, groups - 1E-6, out_ch).floor()  # out_ch indices
+            ch = [(i == g).sum() for g in range(groups)]
+        else:  # 'equal_params': equal parameter count per group
+            b = [out_ch] + [0] * groups
+            a = np.eye(groups + 1, groups, k=-1)
+            a -= np.roll(a, 1, axis=1)
+            a *= np.array(k) ** 2
+            a[0] = 1
+            ch = np.linalg.lstsq(a, b, rcond=None)[0].round().astype(int)  # solve for equal weight indices, ax = b
+
+        self.m = torch.nn.ModuleList([torch.nn.Conv2d(in_channels=in_ch,
+                                          out_channels=ch[g],
+                                          kernel_size=k[g],
+                                          stride=stride,
+                                          padding=k[g] // 2,  # 'same' pad
+                                          dilation=dilation,
+                                          bias=bias) for g in range(groups)])
+
+    def forward(self, x):
+        return torch.cat([m(x) for m in self.m], 1)
+
+
+class DeformConv2d(torch.nn.Module):
+    def __init__(self, inc, outc, kernel_size=3, padding=1, stride=1, bias=None, modulation=False):
+        """
+        Args:
+            modulation (bool, optional): If True, Modulated Defomable Convolution (Deformable ConvNets v2).
+        """
+        super(DeformConv2d, self).__init__()
+        self.kernel_size = kernel_size
+        self.padding = padding
+        self.stride = stride
+        self.zero_padding = torch.nn.ZeroPad2d(padding)
+        self.conv = torch.nn.Conv2d(inc, outc, kernel_size=kernel_size, stride=kernel_size, bias=bias)
+
+        self.p_conv = torch.nn.Conv2d(inc, 2 * kernel_size * kernel_size, kernel_size=3, padding=1, stride=stride)
+        torch.nn.init.constant_(self.p_conv.weight, 0)
+        self.p_conv.register_backward_hook(self._set_lr)
+
+        self.modulation = modulation
+        if modulation:
+            self.m_conv = torch.nn.Conv2d(inc, kernel_size * kernel_size, kernel_size=3, padding=1, stride=stride)
+            torch.nn.init.constant_(self.m_conv.weight, 0)
+            self.m_conv.register_backward_hook(self._set_lr)
+
+    @staticmethod
+    def _set_lr(module, grad_input, grad_output):
+        grad_input = (grad_input[i] * 0.1 for i in range(len(grad_input)))
+        grad_output = (grad_output[i] * 0.1 for i in range(len(grad_output)))
+
+    def forward(self, x):
+        offset = self.p_conv(x)
+        if self.modulation:
+            m = torch.sigmoid(self.m_conv(x))
+
+        dtype = offset.data.type()
+        ks = self.kernel_size
+        N = offset.size(1) // 2
+
+        if self.padding:
+            x = self.zero_padding(x)
+
+        # (b, 2N, h, w)
+        p = self._get_p(offset, dtype)
+
+        # (b, h, w, 2N)
+        p = p.contiguous().permute(0, 2, 3, 1)
+        q_lt = p.detach().floor()
+        q_rb = q_lt + 1
+
+        q_lt = torch.cat([torch.clamp(q_lt[..., :N], 0, x.size(2) - 1), torch.clamp(q_lt[..., N:], 0, x.size(3) - 1)],
+                         dim=-1).long()
+        q_rb = torch.cat([torch.clamp(q_rb[..., :N], 0, x.size(2) - 1), torch.clamp(q_rb[..., N:], 0, x.size(3) - 1)],
+                         dim=-1).long()
+        q_lb = torch.cat([q_lt[..., :N], q_rb[..., N:]], dim=-1)
+        q_rt = torch.cat([q_rb[..., :N], q_lt[..., N:]], dim=-1)
+
+        # clip p
+        p = torch.cat([torch.clamp(p[..., :N], 0, x.size(2) - 1), torch.clamp(p[..., N:], 0, x.size(3) - 1)], dim=-1)
+
+        # bilinear kernel (b, h, w, N)
+        g_lt = (1 + (q_lt[..., :N].type_as(p) - p[..., :N])) * (1 + (q_lt[..., N:].type_as(p) - p[..., N:]))
+        g_rb = (1 - (q_rb[..., :N].type_as(p) - p[..., :N])) * (1 - (q_rb[..., N:].type_as(p) - p[..., N:]))
+        g_lb = (1 + (q_lb[..., :N].type_as(p) - p[..., :N])) * (1 - (q_lb[..., N:].type_as(p) - p[..., N:]))
+        g_rt = (1 - (q_rt[..., :N].type_as(p) - p[..., :N])) * (1 + (q_rt[..., N:].type_as(p) - p[..., N:]))
+
+        # (b, c, h, w, N)
+        x_q_lt = self._get_x_q(x, q_lt, N)
+        x_q_rb = self._get_x_q(x, q_rb, N)
+        x_q_lb = self._get_x_q(x, q_lb, N)
+        x_q_rt = self._get_x_q(x, q_rt, N)
+
+        # (b, c, h, w, N)
+        x_offset = g_lt.unsqueeze(dim=1) * x_q_lt + \
+                   g_rb.unsqueeze(dim=1) * x_q_rb + \
+                   g_lb.unsqueeze(dim=1) * x_q_lb + \
+                   g_rt.unsqueeze(dim=1) * x_q_rt
+
+        # modulation
+        if self.modulation:
+            m = m.contiguous().permute(0, 2, 3, 1)
+            m = m.unsqueeze(dim=1)
+            m = torch.cat([m for _ in range(x_offset.size(1))], dim=1)
+            x_offset *= m
+
+        x_offset = self._reshape_x_offset(x_offset, ks)
+        out = self.conv(x_offset)
+
+        return out
+
+    def _get_p_n(self, N, dtype):
+        p_n_x, p_n_y = torch.meshgrid(
+            torch.arange(-(self.kernel_size - 1) // 2, (self.kernel_size - 1) // 2 + 1),
+            torch.arange(-(self.kernel_size - 1) // 2, (self.kernel_size - 1) // 2 + 1))
+        # (2N, 1)
+        p_n = torch.cat([torch.flatten(p_n_x), torch.flatten(p_n_y)], 0)
+        p_n = p_n.view(1, 2 * N, 1, 1).type(dtype)
+
+        return p_n
+
+    def _get_p_0(self, h, w, N, dtype):
+        p_0_x, p_0_y = torch.meshgrid(
+            torch.arange(1, h * self.stride + 1, self.stride),
+            torch.arange(1, w * self.stride + 1, self.stride))
+        p_0_x = torch.flatten(p_0_x).view(1, 1, h, w).repeat(1, N, 1, 1)
+        p_0_y = torch.flatten(p_0_y).view(1, 1, h, w).repeat(1, N, 1, 1)
+        p_0 = torch.cat([p_0_x, p_0_y], 1).type(dtype)
+
+        return p_0
+
+    def _get_p(self, offset, dtype):
+        N, h, w = offset.size(1) // 2, offset.size(2), offset.size(3)
+
+        # (1, 2N, 1, 1)
+        p_n = self._get_p_n(N, dtype)
+        # (1, 2N, h, w)
+        p_0 = self._get_p_0(h, w, N, dtype)
+        p = p_0 + p_n + offset
+        return p
+
+    def _get_x_q(self, x, q, N):
+        b, h, w, _ = q.size()
+        padded_w = x.size(3)
+        c = x.size(1)
+        # (b, c, h*w)
+        x = x.contiguous().view(b, c, -1)
+
+        # (b, h, w, N)
+        index = q[..., :N] * padded_w + q[..., N:]  # offset_x*w + offset_y
+        # (b, c, h*w*N)
+        index = index.contiguous().unsqueeze(dim=1).expand(-1, c, -1, -1, -1).contiguous().view(b, c, -1)
+
+        x_offset = x.gather(dim=-1, index=index).contiguous().view(b, c, h, w, N)
+
+        return x_offset
+
+    @staticmethod
+    def _reshape_x_offset(x_offset, ks):
+        b, c, h, w, N = x_offset.size()
+        x_offset = torch.cat([x_offset[..., s:s + ks].contiguous().view(b, c, h, w * ks) for s in range(0, N, ks)],
+                             dim=-1)
+        x_offset = x_offset.contiguous().view(b, c, h * ks, w * ks)
+
+        return x_offset
+
+
+class GAP(torch.nn.Module):
+    def __init__(self):
+        super(GAP, self).__init__()
+        self.avg_pool = torch.nn.AdaptiveAvgPool2d(1)
+
+    def forward(self, x):
+        # b, c, _, _ = x.size()
+        return self.avg_pool(x)  # .view(b, c)
+
+
+class Silence(torch.nn.Module):
+    def __init__(self):
+        super(Silence, self).__init__()
+
+    def forward(self, x):
+        return x
+
+
+class ScaleChannel(torch.nn.Module):  # weighted sum of 2 or more layers https://arxiv.org/abs/1911.09070
+    def __init__(self, layers):
+        super(ScaleChannel, self).__init__()
+        self.layers = layers  # layer indices
+
+    def forward(self, x, outputs):
+        a = outputs[self.layers[0]]
+        return x.expand_as(a) * a
+
+
+class ScaleSpatial(torch.nn.Module):  # weighted sum of 2 or more layers https://arxiv.org/abs/1911.09070
+    def __init__(self, layers):
+        super(ScaleSpatial, self).__init__()
+        self.layers = layers  # layer indices
+
+    def forward(self, x, outputs):
+        a = outputs[self.layers[0]]
+        return x * a
+
+
+class FeatureConcat2(torch.nn.Module):
+    def __init__(self, layers):
+        super(FeatureConcat2, self).__init__()
+        self.layers = layers  # layer indices
+        self.multiple = len(layers) > 1  # multiple layers flag
+
+    def forward(self, x, outputs):
+        return torch.cat([outputs[self.layers[0]], outputs[self.layers[1]].detach()], 1)
+
+
+class FeatureConcat3(torch.nn.Module):
+    def __init__(self, layers):
+        super(FeatureConcat3, self).__init__()
+        self.layers = layers  # layer indices
+        self.multiple = len(layers) > 1  # multiple layers flag
+
+    def forward(self, x, outputs):
+        return torch.cat([outputs[self.layers[0]], outputs[self.layers[1]].detach(), outputs[self.layers[2]].detach()], 1)
+
+
+class FeatureConcat_l(torch.nn.Module):
+    def __init__(self, layers):
+        super(FeatureConcat_l, self).__init__()
+        self.layers = layers  # layer indices
+        self.multiple = len(layers) > 1  # multiple layers flag
+
+    def forward(self, x, outputs):
+        return torch.cat([outputs[i][:,:outputs[i].shape[1]//2,:,:] for i in self.layers], 1) if self.multiple else outputs[self.layers[0]][:,:outputs[self.layers[0]].shape[1]//2,:,:]
+
+
+class Reorg(torch.nn.Module):
+    def forward(self, x):
+        return torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1)
+
+
+class JDELayer(torch.nn.Module):
+    def __init__(self, anchors, nc, img_size, yolo_index, layers, stride):
+        super(JDELayer, self).__init__()
+        self.anchors = torch.Tensor(anchors)
+        self.index = yolo_index  # index of this layer in layers
+        self.layers = layers  # model output layer indices
+        self.stride = stride  # layer stride
+        self.nl = len(layers)  # number of output layers (3)
+        self.na = len(anchors)  # number of anchors (3)
+        self.nc = nc  # number of classes (80)
+        self.no = nc + 5  # number of outputs (85)
+        self.nx, self.ny, self.ng = 0, 0, 0  # initialize number of x, y gridpoints
+        self.anchor_vec = self.anchors / self.stride
+        self.anchor_wh = self.anchor_vec.view(1, self.na, 1, 1, 2)
+
+        if False:
+            self.training = False
+            self.create_grids((img_size[1] // stride, img_size[0] // stride))  # number x, y grid points
+
+    def create_grids(self, ng=(13, 13), device='cpu'):
+        self.nx, self.ny = ng  # x and y grid size
+        self.ng = torch.tensor(ng, dtype=torch.float)
+
+        # build xy offsets
+        if not self.training:
+            yv, xv = torch.meshgrid([torch.arange(self.ny, device=device), torch.arange(self.nx, device=device)])
+            self.grid = torch.stack((xv, yv), 2).view((1, 1, self.ny, self.nx, 2)).float()
+
+        if self.anchor_vec.device != device:
+            self.anchor_vec = self.anchor_vec.to(device)
+            self.anchor_wh = self.anchor_wh.to(device)
+
+    def forward(self, p, out):
+        ASFF = False  # https://arxiv.org/abs/1911.09516
+        if ASFF:
+            i, n = self.index, self.nl  # index in layers, number of layers
+            p = out[self.layers[i]]
+            bs, _, ny, nx = p.shape  # bs, 255, 13, 13
+            if (self.nx, self.ny) != (nx, ny):
+                self.create_grids((nx, ny), p.device)
+
+            # outputs and weights
+            # w = F.softmax(p[:, -n:], 1)  # normalized weights
+            w = torch.sigmoid(p[:, -n:]) * (2 / n)  # sigmoid weights (faster)
+            # w = w / w.sum(1).unsqueeze(1)  # normalize across layer dimension
+
+            # weighted ASFF sum
+            p = out[self.layers[i]][:, :-n] * w[:, i:i + 1]
+            for j in range(n):
+                if j != i:
+                    p += w[:, j:j + 1] * \
+                         torch.nn.functional.interpolate(out[self.layers[j]][:, :-n], size=[ny, nx], mode='bilinear', align_corners=False)
+
+        elif False:
+            bs = 1  # batch size
+        else:
+            bs, _, ny, nx = p.shape  # bs, 255, 13, 13
+            if (self.nx, self.ny) != (nx, ny):
+                self.create_grids((nx, ny), p.device)
+
+        # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
+        p = p.view(bs, self.na, self.no, self.ny, self.nx).permute(0, 1, 3, 4, 2).contiguous()  # prediction
+
+        if self.training:
+            return p
+
+        elif ONNX_EXPORT:
+            # Avoid broadcasting for ANE operations
+            m = self.na * self.nx * self.ny
+            ng = 1. / self.ng.repeat(m, 1)
+            grid = self.grid.repeat(1, self.na, 1, 1, 1).view(m, 2)
+            anchor_wh = self.anchor_wh.repeat(1, 1, self.nx, self.ny, 1).view(m, 2) * ng
+
+            p = p.view(m, self.no)
+            xy = torch.sigmoid(p[:, 0:2]) + grid  # x, y
+            wh = torch.exp(p[:, 2:4]) * anchor_wh  # width, height
+            p_cls = torch.sigmoid(p[:, 4:5]) if self.nc == 1 else \
+                torch.sigmoid(p[:, 5:self.no]) * torch.sigmoid(p[:, 4:5])  # conf
+            return p_cls, xy * ng, wh
+
+        else:  # inference
+            #io = p.sigmoid()
+            #io[..., :2] = (io[..., :2] * 2. - 0.5 + self.grid)
+            #io[..., 2:4] = (io[..., 2:4] * 2) ** 2 * self.anchor_wh
+            #io[..., :4] *= self.stride
+            io = p.clone()  # inference output
+            io[..., :2] = torch.sigmoid(io[..., :2]) * 2. - 0.5 + self.grid  # xy
+            io[..., 2:4] = (torch.sigmoid(io[..., 2:4]) * 2) ** 2 * self.anchor_wh  # wh yolo method
+            io[..., :4] *= self.stride
+            io[..., 4:] = F.softmax(io[..., 4:])
+            return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as [1, 507, 85]
+
+

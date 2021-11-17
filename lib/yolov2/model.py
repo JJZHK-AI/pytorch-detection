@@ -13,6 +13,7 @@ import torch
 import lib.yolov2.tools as tools
 import numpy as np
 from jjzhk.device import device
+from lib.backbone.backbone_layer import get_backbone
 
 @MODEL_ZOO.register()
 def yolov2_darknet19(cfg: DetectConfig):
@@ -29,8 +30,7 @@ class YOLOV2_Net(torch.nn.Module):
         self.conf_thresh = self.cfg['base']['conf_threshold']
         self.nms_thresh = self.cfg['base']['nms_thresh']
         self.input_size = self.cfg['net']['imagesize'][0]
-        if backbone_name == 'darknet19':
-            self.backbone = DarkNet_19(cfg)
+        self.backbone = get_backbone(cfg)
         self.num_anchors = len(self.cfg['base']['anchors'])
         self.anchor_size = torch.tensor(self.cfg['base']['anchors'])
         self.num_classes = self.cfg['dataset']['classno']
@@ -250,83 +250,6 @@ class YOLOV2_Net(torch.nn.Module):
         return keep
 
 
-class DarkNet_19(torch.nn.Module):
-    def __init__(self, cfg: DetectConfig):
-        super(DarkNet_19, self).__init__()
-        self.cfg = cfg
-        self.conv_1 = torch.nn.Sequential(
-            Conv_BN_LeakyReLU(3, 32, 3, 1),
-            torch.nn.MaxPool2d((2, 2), 2),
-        )
-
-        # output : stride = 4, c = 64
-        self.conv_2 = torch.nn.Sequential(
-            Conv_BN_LeakyReLU(32, 64, 3, 1),
-            torch.nn.MaxPool2d((2, 2), 2)
-        )
-
-        # output : stride = 8, c = 128
-        self.conv_3 = torch.nn.Sequential(
-            Conv_BN_LeakyReLU(64, 128, 3, 1),
-            Conv_BN_LeakyReLU(128, 64, 1),
-            Conv_BN_LeakyReLU(64, 128, 3, 1),
-            torch.nn.MaxPool2d((2, 2), 2)
-        )
-
-        # output : stride = 8, c = 256
-        self.conv_4 = torch.nn.Sequential(
-            Conv_BN_LeakyReLU(128, 256, 3, 1),
-            Conv_BN_LeakyReLU(256, 128, 1),
-            Conv_BN_LeakyReLU(128, 256, 3, 1),
-        )
-
-        # output : stride = 16, c = 512
-        self.maxpool_4 = torch.nn.MaxPool2d((2, 2), 2)
-        self.conv_5 = torch.nn.Sequential(
-            Conv_BN_LeakyReLU(256, 512, 3, 1),
-            Conv_BN_LeakyReLU(512, 256, 1),
-            Conv_BN_LeakyReLU(256, 512, 3, 1),
-            Conv_BN_LeakyReLU(512, 256, 1),
-            Conv_BN_LeakyReLU(256, 512, 3, 1),
-        )
-
-        # output : stride = 32, c = 1024
-        self.maxpool_5 = torch.nn.MaxPool2d((2, 2), 2)
-        self.conv_6 = torch.nn.Sequential(
-            Conv_BN_LeakyReLU(512, 1024, 3, 1),
-            Conv_BN_LeakyReLU(1024, 512, 1),
-            Conv_BN_LeakyReLU(512, 1024, 3, 1),
-            Conv_BN_LeakyReLU(1024, 512, 1),
-            Conv_BN_LeakyReLU(512, 1024, 3, 1)
-        )
-
-    def forward(self, x):
-        x = self.conv_1(x)
-        x = self.conv_2(x)
-        x = self.conv_3(x)
-        C_4 = self.conv_4(x)
-        C_5 = self.conv_5(self.maxpool_4(C_4))
-        C_6 = self.conv_6(self.maxpool_5(C_5))
-
-        # x = self.conv_7(C_6)
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # return x
-        return C_4, C_5, C_6
-
-
-class Conv_BN_LeakyReLU(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, ksize, padding=0, stride=1, dilation=1):
-        super(Conv_BN_LeakyReLU, self).__init__()
-        self.convs = torch.nn.Sequential(
-            torch.nn.Conv2d(in_channels, out_channels, ksize, padding=padding, stride=stride, dilation=dilation),
-            torch.nn.BatchNorm2d(out_channels),
-            torch.nn.LeakyReLU(0.1, inplace=True)
-        )
-
-    def forward(self, x):
-        return self.convs(x)
-
 class Conv(torch.nn.Module):
     def __init__(self, in_ch, out_ch, k=1, p=0, s=1, d=1, g=1, act=True):
         super(Conv, self).__init__()
@@ -361,3 +284,4 @@ class reorg_layer(torch.nn.Module):
         x = x.view(batch_size, -1, _height, _width)
 
         return x
+

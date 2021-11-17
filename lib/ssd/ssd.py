@@ -10,7 +10,6 @@
 import torch
 from lib.model.base import ModelBase
 from lib.model.model_zoo import MODEL_ZOO
-from lib.ssd.layers import ssd_create_modules
 
 
 @MODEL_ZOO.register()
@@ -20,7 +19,7 @@ def ssd(cfg):
 
 class SSD(ModelBase):
     def __init__(self, cfg):
-        super(SSD, self).__init__(cfg, ssd_create_modules)
+        super(SSD, self).__init__(cfg)
         extras, head = self._add_extras_(self.feature_layer,
                                          self.number_box,
                                          self.num_classes,

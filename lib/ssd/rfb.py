@@ -10,7 +10,6 @@
 import torch
 from lib.model.base import ModelBase
 from lib.model.model_zoo import MODEL_ZOO
-from lib.ssd.layers import ssd_create_modules
 
 
 @MODEL_ZOO.register()
@@ -20,7 +19,7 @@ def rfb(cfg):
 
 class RFB(ModelBase):
     def __init__(self, cfg):
-        super(RFB, self).__init__(cfg, ssd_create_modules)
+        super(RFB, self).__init__(cfg)
         self.base = torch.nn.ModuleList(self.backbone)
 
         if self.cfg['net']['lite'] == 'T':

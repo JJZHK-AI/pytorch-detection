@@ -10,11 +10,11 @@
 import torch
 from jjzhk.device import device
 import numpy as np
-from lib.backbone.util import create_modules
+from lib.backbone.backbone_layer import get_backbone
 
 
 class ModelBase(torch.nn.Module):
-    def __init__(self, cfg, callback=None):
+    def __init__(self, cfg):
         super(ModelBase, self).__init__()
         self.cfg = cfg
         self.num_classes = self.cfg['dataset']['classno']
@@ -22,9 +22,9 @@ class ModelBase(torch.nn.Module):
         self.number_box = [2 * len(aspect_ratios) if isinstance(aspect_ratios[0], int) else len(aspect_ratios) for
                            aspect_ratios in self.cfg['net']['aspect_ratio']]
 
-        self.module_defs = self.cfg['backbone']
-        self.base, _, _ =  create_modules(self.module_defs, self.cfg, callback)
-        self.base = torch.nn.ModuleList(self.base)
+        # self.module_defs = self.cfg['backbone']
+        # self.base, _, _ =  create_modules(self.module_defs, self.cfg, callback)
+        self.base = torch.nn.ModuleList(get_backbone(self.cfg))
 
     def forward(self, x, **kwargs):
         pass

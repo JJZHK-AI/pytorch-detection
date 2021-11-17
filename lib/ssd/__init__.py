@@ -10,7 +10,6 @@
 from .eval import *
 from .focus_loss import *
 from .fssd import *
-from .layers import *
 from .multibox import *
 from .rfb import *
 from .ssd import *

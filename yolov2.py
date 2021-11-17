@@ -36,7 +36,7 @@ if __name__ == '__main__':
     config.load_file_list([
         "%s.cfg" % args.datatype,
         os.path.join("%d" % args.imgsize, "%s" % args.datatype, "yolov2_%s.cfg" % args.model)])
-    config.load_backbone_file(os.path.join("backbone", "yolov2_darknet19.cfg"))
+    # config.load_backbone_file(os.path.join("backbone", "yolov2_darknet19.cfg"))
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
     config['train']['learning_rate'] = args.lr
 

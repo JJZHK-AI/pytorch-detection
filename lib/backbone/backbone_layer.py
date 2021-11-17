@@ -1,21 +1,20 @@
 """
 @author: zhangkai
 @license: (C) Copyright 2017-2023
-@contact: jeffcobile@gmail.com
+@contact: myjjzhk@126.com
 @Software : PyCharm
-@file: layer_zoo.py
-@time: 2021-09-16 17:38:51
+@file: backbone_layer.py
+@time: 2021-11-17 18:32:52
 @desc: 
 """
 from jjzhk.register import Registry
 
+BACKBONE_ZOO = Registry("DATASET")
 
-LAYER_ZOO = Registry('LAYER')
 
-
-def get_layer(layercfg, **kwargs):
+def get_backbone(cfg):
     """
     Built the backbone model, defined by `cfg.MODEL.BACKBONE`.
     """
-    model = LAYER_ZOO.get(layercfg['type'])(layercfg, **kwargs)
+    model = BACKBONE_ZOO.get(cfg['net']['backbone'])(cfg)
     return model
