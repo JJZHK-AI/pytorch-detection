@@ -1,13 +1,14 @@
 Detection
 ===
- - [ ] 未完成
- - [x] 完成
+# 1.代码完成度
 
 |       | SSD | RFB | FSSD | YOLOV1 | YOLOV2 | YOLOV3 | YOLOV4 | YOLOV5 |
 | ----- | --- | --- | ---- | ------ | ------ | ------ | ------ | ------ |
 | train |  👍 |   👍 |  👍  |   👍   |   👎    |   👎   |   👎   |   👎    |
+|  eval |  👍 |   👍 |  👍  |   👍   |   👎    |   👎   |   👎   |   👎    |
+|  test |  👍 |   👍 |  👍  |   👍   |   👍    |   👎   |   👍   |   👎    |
 
-# 1.SSD
+# 2.SSD
 $300 \times 300$
 |            |  vgg16  |  resnet50  |  resnet152  |  darknet19  |  mobilenetv1  |
 | ---------- | :-----: | :--------: | :---------: | :---------: | :-----------: |
@@ -16,7 +17,7 @@ $300 \times 300$
 |  COCO-mAP  |  -----  |   25.0%    |             |    20.7%    |     18.8%     |
 | COCO-Image |         | ![avatar](result/ssd_coco_resnet50_300.jpg) | | ![avatar](result/ssd_coco_darknet19_300.jpg) | ![avatar](result/ssd_coco_mobilenetv1_300.jpg) |
 
-# 2.RFB
+# 3.RFB
 $300 \times 300$
 |            |  vgg16  |  resnet50  |  resnet152  |  darknet19  |  mobilenetv1  |
 | ---------- | :-----: | :--------: | :---------: | :---------: | :-----------: |
@@ -25,7 +26,7 @@ $300 \times 300$
 |  COCO-mAP  |         |            |             |    22.4%    |     19.0%     |
 | COCO-Image |         | | | ![avatar](result/rfb_coco_darknet19_300.jpg) | ![avatar](result/rfb_coco_mobilenetv1_300.jpg) |
 
-# 3.FSSD
+# 4.FSSD
 $300 \times 300$
 |            |  vgg16  |  resnet50  |  resnet152  |  darknet19  |  mobilenetv1  |
 | ---------- | :-----: | :--------: | :---------: | :---------: | :-----------: |
@@ -34,7 +35,7 @@ $300 \times 300$
 |  COCO-mAP  |         |    26.6%   |             |    25.2%    |     22.8%     |
 | COCO-Image | | ![avatar](result/fssd_coco_resnet50_300.jpg) | | ![avatar](result/fssd_coco_darknet19_300.jpg) | ![avatar](result/fssd_coco_mobilenetv1_300.jpg) |
 
-# 4.YOLO
+# 5.YOLO
 ### YOLOv1
 |            |  Resnet50-7 | Resnet50-14 | resnet-7 | resnet-14 | vgg16-7 | vgg16-14 |
 | ---------- | :---------: | :---------: | :------: | :-------: | :-----: | :------: |
