@@ -1,6 +1,6 @@
 Detection
 ===
-- [ ] 记得找个女朋友
+- [ ]
 
 
 |       | SSD | RFB | FSSD | YOLOV1 | YOLOV2 | YOLOV3 | YOLOV4 | YOLOV5 |
