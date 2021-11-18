@@ -2,7 +2,7 @@ Detection
 ===
 |       | SSD | RFB | FSSD | YOLOV1 | YOLOV2 | YOLOV3 | YOLOV4 | YOLOV5 |
 | ----- | --- | --- | ---- | ------ | ------ | ------ | ------ | ------ |
-| train | [x] | []  |  [x] |   [x]  |   [x]  |   [x]  |   [x]  |   [x]  |
+| train | - [x] | - []  |  [x] |   [x]  |   [x]  |   [x]  |   [x]  |   [x]  |
 
 # 1.SSD
 $300 \times 300$
