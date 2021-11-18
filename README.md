@@ -1,5 +1,10 @@
 Detection
 ===
+1. - [ ] 记得找个女朋友
+2. 天凉了，记得加衣喔
+   1. - [x] 今日份单词打卡
+   2. - [x] 了解tree shaking和dce
+
 |       | SSD | RFB | FSSD | YOLOV1 | YOLOV2 | YOLOV3 | YOLOV4 | YOLOV5 |
 | ----- | --- | --- | ---- | ------ | ------ | ------ | ------ | ------ |
 | train | - [x] | - []  |  [x] |   [x]  |   [x]  |   [x]  |   [x]  |   [x]  |
