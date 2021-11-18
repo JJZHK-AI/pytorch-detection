@@ -1,3 +1,9 @@
+Detection
+===
+|       | SSD | RFB | FSSD | YOLOV1 | YOLOV2 | YOLOV3 | YOLOV4 | YOLOV5 |
+| ----- | --- | --- | ---- | ------ | ------ | ------ | ------ | ------ |
+| train | [x] | []  |  [x] |   [x]  |   [x]  |   [x]  |   [x]  |   [x]  |
+
 # 1.SSD
 $300 \times 300$
 |            |  vgg16  |  resnet50  |  resnet152  |  darknet19  |  mobilenetv1  |
