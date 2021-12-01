@@ -15,6 +15,7 @@ import lib.dataset as d
 from jjzhk.progressbar import ProgressBar
 from jjzhk.config import DetectConfig
 from lib.utils.util import do_python_eval
+import torch.utils.model_zoo
 
 
 class Solver(object):
@@ -67,8 +68,7 @@ class Solver(object):
         return self.init_others()
 
     def _resume_checkpoint_(self, weights, justInitBase=False):
-        print(weights)
-        return self.load_check_point(weights, justInitBase)
+        return self._load_check_point_(weights, justInitBase)
 
     def _test_epoch_(self, epoch, model):
         if self._test_loader_ is None:
@@ -195,6 +195,22 @@ class Solver(object):
         self._resume_checkpoint_('', justInitBase=True)
         return 0
 
+    def _load_check_point_(self, weights, justInitBase=False):
+        if justInitBase: # 训练时加载pretrained weights
+            self._load_backbone_weights_()
+        else: # 加载一个已经训练好的weights
+            print("loading weights from %s" % weights)
+            if 'https://' in weights: # 已经训练好的最终结果，一般用来做eval或者test
+                checkpoint = torch.utils.model_zoo.load_url(weights, map_location=device)
+                self.model.load_init_weights(checkpoint)
+            else: # 还未上传的训练结果，一般用来做某一epoch的weights以继续训练
+                self.model.load_init_weights(torch.load(weights), map_location=device)
+
+    def _load_backbone_weights_(self):
+        print("loading init weights from %s" % self.cfg['net']['trained_weights'])
+        weights = torch.utils.model_zoo.load_url(self.cfg['net']['trained_weights'])
+        self.model.load_backbone_weights(weights)
+
     def _find_previous_eval(self):
         if not os.path.exists(self.eval_file):
             return False
@@ -219,9 +235,6 @@ class Solver(object):
         pass
 
     def init_others(self):
-        pass
-
-    def load_check_point(self, weights, justInitBase=False):
         pass
 
     def init_test_loader(self) -> object:
@@ -315,14 +328,11 @@ class Solver(object):
 
     def eval(self):
         self.phase = "eval"
-        print("loading weights from %s" % self.cfg['net']['test_weights'])
         self._resume_checkpoint_(self.cfg['net']['test_weights'])
         self._eval_epoch_(0, self.model)
 
     def test(self):
-        print(self.model)
         self.phase = "test"
-        print("loading weights from %s" % self.cfg['net']['test_weights'])
         self._resume_checkpoint_(self.cfg['net']['test_weights'])
         self._test_epoch_(0, self.model)
 

@@ -8,7 +8,7 @@
 @desc: 
 '''
 import torch
-from lib.model.base import ModelBase
+from lib.model.base import DetectionModel
 from lib.model.model_zoo import MODEL_ZOO
 
 
@@ -17,7 +17,7 @@ def rfb(cfg):
     return RFB(cfg)
 
 
-class RFB(ModelBase):
+class RFB(DetectionModel):
     def __init__(self, cfg):
         super(RFB, self).__init__(cfg)
         self.base = torch.nn.ModuleList(self.backbone)

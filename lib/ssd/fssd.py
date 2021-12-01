@@ -8,7 +8,7 @@
 @desc: 
 '''
 import torch
-from lib.model.base import ModelBase
+from lib.model.base import DetectionModel
 from lib.model.model_zoo import MODEL_ZOO
 
 
@@ -17,7 +17,7 @@ def fssd(cfg):
     return FSSD(cfg)
 
 
-class FSSD(ModelBase):
+class FSSD(DetectionModel):
     def __init__(self, cfg):
         super(FSSD, self).__init__(cfg)
         extras, features, head = self._add_extras_(self.feature_layer,

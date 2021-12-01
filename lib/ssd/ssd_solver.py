@@ -18,7 +18,7 @@ import lib.loss as l
 import itertools
 import math
 from jjzhk.device import device
-# from alive_progress import alive_bar
+from lib.utils.eval import EvalObj
 from jjzhk.drawseg import BaseDrawSeg
 from jjzhk.progressbar import ProgressBar
 
@@ -44,24 +44,6 @@ class SSDSolver(Solver):
 
         self.priors = torch.autograd.Variable(self.priorbox.forward())
         self.detector = Detect(self.cfg, self.priors)
-
-    def load_check_point(self, weights, justInitBase=False):
-        ''' 调用这个方法的四种情况
-                1. 加载pretrained model时调用 justInitBase = True, 模型从网络上下载
-                2. 模型继续运行时的调用 justInitBase=False,模型在logger中
-                3. eval方法时调用 justInitBase=False, 模型从网络下载
-                4. test方法时调用 justInitBase=False, 模型从网络下载
-                '''
-        print("loading backbone weights...")
-
-        if justInitBase:  # 第1种情况
-            self._load_backbone_weights_()
-        else:
-            if 'https://' in weights:
-                checkpoint = torch.utils.model_zoo.load_url(weights, map_location=device)
-                self.model.load_init_weights(checkpoint)
-            else:
-                self.model.load_init_weights(torch.load(weights), map_location=device)
 
     def init_test_loader(self):
         test_sampler = self._make_data_sampler_(self._test_dataset_, False)
@@ -106,7 +88,7 @@ class SSDSolver(Solver):
 
         for i, sampler in enumerate(self._test_loader_):
             images, info = sampler['img'], sampler['info']
-            boxes = self.model.get_predict(images, info, eval=False, detector=self.detector)
+            boxes = self.model.get_test_predict(images, info, eval=False, detector=self.detector)
             for j, box in enumerate(boxes):
                 image_id = info[j]["img_id"]
                 filename = "%s.jpg" % image_id
@@ -120,7 +102,7 @@ class SSDSolver(Solver):
         return image
 
     def eval_epoch(self, epoch, model):
-        eval_model = s.SSDEval(self.cfg, model)
+        eval_model = EvalObj(self.cfg, model)
 
         mAP, info = eval_model.calculateMAP(self._eval_loader_,
                                             os.path.join(self._eval_path_, str(epoch)),
@@ -209,12 +191,6 @@ class SSDSolver(Solver):
             x = torch.autograd.Variable(x)
         feature_maps = model(x, phase='feature')
         return [(o.size()[2], o.size()[3]) for o in feature_maps]
-
-    def _load_backbone_weights_(self):
-        backbone_name = self.cfg['base']['backbone']
-        if backbone_name in self.model_urls.keys():
-            weights = torch.utils.model_zoo.load_url(self.model_urls[backbone_name])
-            self.model.base.load_state_dict(weights)
 
     def _make_data_sampler_(self, dataset, shuffle):
         if shuffle:

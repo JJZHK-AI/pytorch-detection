@@ -7,7 +7,7 @@
 @time: 2021-11-10 11:13:20
 @desc: 
 """
-import numpy as np
+from lib.utils.eval import EvalObj
 import torch
 import torch.utils.data
 import os
@@ -62,44 +62,19 @@ class Yolov1Solver(Solver):
                            output=os.path.join(self._test_path_, str(epoch)))
         bar = ProgressBar(1, len(self._test_loader_), "Detection")
         for index, (image, _, info) in enumerate(self._test_loader_):
-            with torch.no_grad():
-                img = torch.autograd.Variable(torch.FloatTensor(image))
-                img = img.to(device)
-                img_id = info[0]['img_id']
-                pred = self.model(img)  # 1x7x7x30
-                pred = pred.cpu()
-                boxes, cls_indexs, probs = y.decoder(pred)
-                w = info[0]['width']
-                h = info[0]['height']
-                result = []
-                for i, box in enumerate(boxes):
-                    prob = probs[i]
-                    prob = float(prob)
-                    if (prob >= self.cfg['base']['conf_threshold']):
-                        x1 = int(box[0] * w)
-                        x2 = int(box[2] * w)
-                        y1 = int(box[1] * h)
-                        y2 = int(box[3] * h)
-                        cls_index = cls_indexs[i]
-                        cls_index = int(cls_index)  # convert LongTensor to int
-
-                        result.append([
-                            (x1, y1),
-                            (x2, y2),
-                            self.cfg.classname(cls_index),
-                            img_id,
-                            prob
-                        ])
-
+            boxes = self.model.get_test_predict(image, info)
+            image_id = info[0]["img_id"]
+            filename = "%s.jpg" % image_id
             image = draw.draw_image(param={
-                "Image": os.path.join(self.cfg['dataset']['test_root'], "Images", "%s.jpg" % img_id),
-                "Boxes": result,
-                "ImageName": img_id
+                "Image": os.path.join(self.cfg['dataset']['test_root'], "Images", filename),
+                "Boxes": boxes,
+                "ImageName": image_id
             }, draw_type=0)
+
             bar.show(1)
 
     def eval_epoch(self, epoch, model):
-        eval_model = y.YOLOV1Eval(self.cfg, model)
+        eval_model = EvalObj(self.cfg, model)
 
         mAP, info = eval_model.calculateMAP(self._eval_loader_,
                                             os.path.join(self._eval_path_, str(epoch)))

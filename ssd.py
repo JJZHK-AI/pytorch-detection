@@ -23,7 +23,7 @@ def parse_args(argv=None):
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
     parser.add_argument('-model', default='ssd', type=str, help='')
     parser.add_argument('-datatype', default='voc', type=str, help='')
-    parser.add_argument('-net', default='darknet19', type=str, help='')
+    parser.add_argument('-net', default='vgg16', type=str, help='')
     parser.add_argument('-phase', default='test', type=str, help='')
     parser.add_argument('-imgsize', default=300, type=int, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
@@ -36,12 +36,14 @@ if __name__ == '__main__':
     config = DetectConfig("cfg")
     config.load_file_list([
         "%s.cfg" % args.datatype,
+        "weights.cfg",
         os.path.join("%d" % args.imgsize, "%s" % args.datatype, "%s" % args.model, "%s.cfg" % args.net)])
-    # config.load_backbone_file(os.path.join("backbone", "%s.cfg" % args.net))
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
-    config['base']['backbone'] = args.net
     config['train']['learning_rate'] = args.lr
+    config['net']['trained_weights'] = "%s/%s/%s.pth" % (config["SSD"]["host"], "pretrained", args.net)
+    config['net']['test_weights'] = "%s/trained_%s/%s_%s_%d.pth" % (config["SSD"]["host"], args.datatype,
+                                                                    args.model, args.net, args.imgsize)
 
     print('model: %s, backbone: %s, size: %d' % (args.model, args.net, args.imgsize))
 

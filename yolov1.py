@@ -36,21 +36,31 @@ if __name__ == '__main__':
     config = DetectConfig("cfg")
     config.load_file_list([
         "%s.cfg" % args.datatype,
-        os.path.join("%d" % args.imgsize, "%s" % args.datatype, "yolov1_%s.cfg" % args.model)])
+        os.path.join("%d" % args.imgsize, "%s" % args.datatype, "yolov1_%s.cfg" % args.model),
+        "weights.cfg"
+    ])
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
     config['net']['cell_number'] = args.cell
     config['train']['learning_rate'] = args.lr
 
+
     print('model: %s, size: %d' % (args.model, args.imgsize))
 
     solver = Yolov1Solver(config, model_name=args.model)
-
     if args.phase == 'train':
+        config['net']['trained_weights'] = "%s/YOLOV1/%s.pth" % (config['weights']['pretrain_host'],
+                                                                 args.model)
         solver.train()
     elif args.phase == 'eval':
+        config['net']['test_weights'] = "%s/YOLOV1-%s/yolov1_%s_%d.pth" % (config['weights']['trained_host'],
+                                                                          args.datatype.upper(), args.model,
+                                                                          args.cell)
         solver.eval()
     elif args.phase == 'test':
+        config['net']['test_weights'] = "%s/YOLOV1-%s/yolov1_%s_%d.pth" % (config['weights']['trained_host'],
+                                                                          args.datatype.upper(), args.model,
+                                                                          args.cell)
         solver.test()
     else:
         print(solver.eval_mAP(50)[0])

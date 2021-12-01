@@ -18,19 +18,16 @@ class EvalObj:
         self.cfg = config
         self.model = model
 
-    def eval_boxes(self, batch, **kwargs) -> tuple:
-        pass
-
     def calculateMAP(self, loader, output_path, **kwargs):
         all_boxes = [[[] for _ in range(len(loader))]
                      for _ in range(len(self.cfg.class_keys()) + 1)]
         infos = []
         bar = ProgressBar(1, len(loader), "")
         for i, sampler in enumerate(loader):
-            detections, info = self.eval_boxes(sampler, **kwargs)
-            # print(info)
-            image_eval_boxes = self.model.get_eval_predictions(info, detections)
+            # detections, info = self.eval_boxes(sampler, **kwargs)
+            # image_eval_boxes = self.model.get_eval_predictions(info, detections)
 
+            image_eval_boxes, info = self.model.get_eval_predictions(sampler, **kwargs)
             for j, box in enumerate(image_eval_boxes):
                 all_boxes[j][i] = box
 

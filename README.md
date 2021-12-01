@@ -1,5 +1,3 @@
-Detection
-===
 # 1.代码完成度
 
 |       | SSD | RFB | FSSD | YOLOV1 | YOLOV2 | YOLOV3 | YOLOV4 | YOLOV5 |
