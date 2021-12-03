@@ -14,17 +14,18 @@ import lib.yolov2.tools as tools
 import numpy as np
 from jjzhk.device import device
 from lib.backbone.backbone_layer import get_backbone
+from model.base import ModelBase
 
 @MODEL_ZOO.register()
 def yolov2_darknet19(cfg: DetectConfig):
     return YOLOV2_Net(cfg, "darknet19")
 
 
-class YOLOV2_Net(torch.nn.Module):
+class YOLOV2_Net(ModelBase):
     def __init__(self, cfg: DetectConfig, backbone_name):
-        super(YOLOV2_Net, self).__init__()
+        super(YOLOV2_Net, self).__init__(cfg)
 
-        self.cfg = cfg
+        #region fields
         self.stride = 32
         self.device = device
         self.conf_thresh = self.cfg['base']['conf_threshold']
@@ -48,8 +49,12 @@ class YOLOV2_Net(torch.nn.Module):
 
         # prediction layer
         self.pred = torch.nn.Conv2d(1024, self.num_anchors * (1 + 4 + self.num_classes), kernel_size=1)
+        #endregion
 
-    def forward(self, x, target=None, trainable=False):
+    def forward(self, x, **kwargs):
+        target = kwargs.get('target')
+        trainable = kwargs.get('trainable')
+
         # backbone主干网络
         _, c4, c5 = self.backbone(x)
 
@@ -248,6 +253,69 @@ class YOLOV2_Net(torch.nn.Module):
             order = order[inds + 1]
 
         return keep
+
+    def get_eval_predictions(self, sampler, **kwargs):
+        pass
+        # images, info = sampler[0], sampler[2]
+        # images = torch.autograd.Variable(torch.FloatTensor(images)).to(device)
+        # detections = self.model(images)
+        #
+        # result = []
+        # for detection in detections:
+        #     w, h = info['width'], info['height']
+        #     boxes, cls_indexs, probs = decoder(detection)
+        #
+        #     for i, box in enumerate(boxes):
+        #         # if cls_indexs[i] == 19:
+        #         #     print("OK")
+        #
+        #         prob = probs[i]
+        #         prob = float(prob)
+        #         if prob >= self.cfg['base']['conf_threshold']:
+        #             x1 = int(box[0] * w)
+        #             x2 = int(box[2] * w)
+        #             y1 = int(box[1] * h)
+        #             y2 = int(box[3] * h)
+        #
+        #             result.append([(x1, y1), (x2, y2), int(cls_indexs[i]), self.cfg.classname(int(cls_indexs[i])), prob])
+        #
+        # re_boxes = [[] for _ in range(len(self.cfg.class_keys()) + 1)]
+        # for (x1, y1), (x2, y2), class_id, class_name, prob in result: #image_id is actually image_path
+        #     re_boxes[class_id+1].append([x1, y1, x2, y2, prob])
+        #
+        # return re_boxes
+
+    def get_test_predict(self, image, info, **kwargs):
+        img_h, img_w = info[0]['height'], info[0]['width']
+        scale = np.array([[img_w, img_h, img_w, img_h]])
+        img = torch.from_numpy(image).to(device)
+        bboxes, scores, cls_inds = self.forward(img, trainable=False)
+        bboxes *= scale
+        result = []
+        img_id = info[0]['img_id']
+        for i, box in enumerate(bboxes):
+            prob = scores[i]
+            prob = float(prob)
+            if (prob >= self.cfg['base']['conf_threshold']):
+                x1 = int(box[0])
+                x2 = int(box[2])
+                y1 = int(box[1])
+                y2 = int(box[3])
+                cls_index = cls_inds[i]
+                cls_index = int(cls_index)  # convert LongTensor to int
+
+                result.append([
+                    (x1, y1),
+                    (x2, y2),
+                    self.cfg.classname(cls_index),
+                    img_id,
+                    prob
+                ])
+
+        return result
+
+    def load_init_weights(self, weights):
+        self.load_state_dict(weights)
 
 
 class Conv(torch.nn.Module):

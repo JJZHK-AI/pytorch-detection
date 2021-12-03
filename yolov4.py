@@ -37,12 +37,14 @@ if __name__ == '__main__':
     config = DetectConfig("cfg")
     config.load_file_list([
         "%s.cfg" % args.datatype,
+        "weights.cfg",
         os.path.join("%d" % args.imgsize, "%s" % args.datatype, "%s.cfg" % args.net)])
     config.load_backbone_file(os.path.join("backbone", "%s.cfg" % args.net))
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
     config['base']['backbone'] = args.net
     config['train']['learning_rate'] = args.lr
+    config['net']['test_weights'] = "%s/trained_%s/%s.pth" % (config["YOLOV4"]["host"], args.datatype, "yolov4")
 
     print('model: %s, backbone: %s, size: %d' % (args.model, args.net, args.imgsize))
 

@@ -208,7 +208,7 @@ class Solver(object):
 
     def _load_backbone_weights_(self):
         print("loading init weights from %s" % self.cfg['net']['trained_weights'])
-        weights = torch.utils.model_zoo.load_url(self.cfg['net']['trained_weights'])
+        weights = torch.utils.model_zoo.load_url(self.cfg['net']['trained_weights'], map_location=device)
         self.model.load_backbone_weights(weights)
 
     def _find_previous_eval(self):

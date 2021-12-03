@@ -47,8 +47,6 @@ class YoloV2Detection(DataSetBase):
             pass
         else:
             transform = BaseTransform(self.cfg['net']['imagesize'][0])
-            # img_h, img_w = img.shape[:2]
-            # scale = np.array([[img_w, img_h, img_w, img_h]])
             img = torch.from_numpy(transform(img)[0][:, :, ::-1].copy()).permute(2, 0, 1)
 
         return img, target, info

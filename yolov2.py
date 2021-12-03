@@ -23,7 +23,7 @@ def parse_args(argv=None):
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
     parser.add_argument('-model', default='darknet19', type=str, help='')
     parser.add_argument('-datatype', default='coco', type=str, help='')
-    parser.add_argument('-phase', default='test', type=str, help='')
+    parser.add_argument('-phase', default='train', type=str, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
     args = parser.parse_args(argv)
     return args
@@ -35,10 +35,16 @@ if __name__ == '__main__':
     config = DetectConfig("cfg")
     config.load_file_list([
         "%s.cfg" % args.datatype,
+        "weights.cfg",
         os.path.join("%d" % args.imgsize, "%s" % args.datatype, "yolov2_%s.cfg" % args.model)])
-    # config.load_backbone_file(os.path.join("backbone", "yolov2_darknet19.cfg"))
+
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
     config['train']['learning_rate'] = args.lr
+
+    config['net']['trained_weights'] = "%s/%s/%s.pth" % (config["YOLOV2"]["host"], "pretrained", args.model)
+    config['net']['test_weights'] = "%s/trained_%s/%s.pth" % (config["YOLOV2"]["host"],
+                                                                        args.datatype,
+                                                                        args.model)
 
     print('model: %s, size: %d' % (args.model, args.imgsize))
 

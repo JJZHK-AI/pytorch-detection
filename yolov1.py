@@ -21,7 +21,7 @@ if torch.cuda.is_available():
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='Project')
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
-    parser.add_argument('-model', default='vgg16', type=str, help='')
+    parser.add_argument('-model', default='resnet50', type=str, help='')
     parser.add_argument('-datatype', default='voc', type=str, help='')
     parser.add_argument('-phase', default='train', type=str, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
@@ -44,23 +44,18 @@ if __name__ == '__main__':
     config['net']['cell_number'] = args.cell
     config['train']['learning_rate'] = args.lr
 
-
+    config['net']['trained_weights'] = "%s/%s/%s.pth" % (config["YOLOV1"]["host"], "pretrained", args.model)
+    config['net']['test_weights'] = "%s/trained_%s/yolov1_%s_%d.pth" % (config["YOLOV1"]["host"],
+                                                                        args.datatype,
+                                                                        args.model, args.cell)
     print('model: %s, size: %d' % (args.model, args.imgsize))
 
     solver = Yolov1Solver(config, model_name=args.model)
     if args.phase == 'train':
-        config['net']['trained_weights'] = "%s/YOLOV1/%s.pth" % (config['weights']['pretrain_host'],
-                                                                 args.model)
         solver.train()
     elif args.phase == 'eval':
-        config['net']['test_weights'] = "%s/YOLOV1-%s/yolov1_%s_%d.pth" % (config['weights']['trained_host'],
-                                                                          args.datatype.upper(), args.model,
-                                                                          args.cell)
         solver.eval()
     elif args.phase == 'test':
-        config['net']['test_weights'] = "%s/YOLOV1-%s/yolov1_%s_%d.pth" % (config['weights']['trained_host'],
-                                                                          args.datatype.upper(), args.model,
-                                                                          args.cell)
         solver.test()
     else:
         print(solver.eval_mAP(50)[0])

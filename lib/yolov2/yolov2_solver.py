@@ -62,35 +62,11 @@ class Yolov2Solver(Solver):
                            output=os.path.join(self._test_path_, str(epoch)))
         bar = ProgressBar(1, len(self._test_loader_), "Detection")
         for index, (image, _, info) in enumerate(self._test_loader_):
-            img_h, img_w = info[0]['height'], info[0]['width']
-            scale = np.array([[img_w, img_h, img_w, img_h]])
-            img = torch.from_numpy(image).to(device)
-            bboxes, scores, cls_inds = self.model.forward(img, trainable=False)
-            bboxes *= scale
-            result = []
-            img_id = info[0]['img_id']
-            for i, box in enumerate(bboxes):
-                prob = scores[i]
-                prob = float(prob)
-                if (prob >= self.cfg['base']['conf_threshold']):
-                    x1 = int(box[0])
-                    x2 = int(box[2])
-                    y1 = int(box[1])
-                    y2 = int(box[3])
-                    cls_index = cls_inds[i]
-                    cls_index = int(cls_index)  # convert LongTensor to int
-
-                    result.append([
-                        (x1, y1),
-                        (x2, y2),
-                        self.cfg.classname(cls_index),
-                        img_id,
-                        prob
-                    ])
-
+            boxes = self.model.get_test_predict(image, info)
+            img_id = info[0]["img_id"]
             image = draw.draw_image(param={
                 "Image": os.path.join(self.cfg['dataset']['test_root'], "Images", "%s.jpg" % img_id),
-                "Boxes": result,
+                "Boxes": boxes,
                 "ImageName": img_id
             }, draw_type=0)
             bar.show(1)
