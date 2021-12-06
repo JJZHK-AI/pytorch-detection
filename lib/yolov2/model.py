@@ -18,11 +18,11 @@ from model.base import ModelBase
 
 @MODEL_ZOO.register()
 def yolov2_darknet19(cfg: DetectConfig):
-    return YOLOV2_Net(cfg, "darknet19")
+    return YOLOV2_Net(cfg)
 
 
 class YOLOV2_Net(ModelBase):
-    def __init__(self, cfg: DetectConfig, backbone_name):
+    def __init__(self, cfg: DetectConfig):
         super(YOLOV2_Net, self).__init__(cfg)
 
         #region fields
