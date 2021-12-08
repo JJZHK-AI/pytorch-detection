@@ -13,29 +13,35 @@ import torchvision as tv
 from lib.dataset.data_zoo import DATASET_ZOO
 from jjzhk.dataset import TestData, VOCData, COCOData, DataSetBase
 from jjzhk.config import DetectConfig
-from lib.yolov1.arguments import random_flip, randomBlur, randomCrop, randomScale, RandomBrightness
-from lib.yolov1.arguments import RandomHue, RandomSaturation, randomShift, BGR2RGB, subMean
-import cv2
+from lib.yolov3.argument import BaseTransform
 import os
 from lib.utils.util import write_voc_results_file, do_python_eval, write_coco_results_file, do_detection_eval
 
 
 @DATASET_ZOO.register()
-def yolov1_voc(cfg, phase):
+def yolov2_voc(cfg, phase):
     return VOCDetection(cfg, phase)
 
 
 @DATASET_ZOO.register()
-def yolov1_coco(cfg, phase):
+def yolov3_voc(cfg, phase):
+    return VOCDetection(cfg, phase)
+
+
+@DATASET_ZOO.register()
+def yolov2_coco(cfg, phase):
     return COCODetection(cfg, phase)
 
 
-class YoloV1Detection(DataSetBase):
+@DATASET_ZOO.register()
+def yolov3_coco(cfg, phase):
+    return COCODetection(cfg, phase)
+
+class YoloV2Detection(DataSetBase):
     def __init__(self, cfg: DetectConfig, phase):
-        super(YoloV1Detection, self).__init__(cfg, phase)
+        super(YoloV2Detection, self).__init__(cfg, phase)
         self.transform = [tv.transforms.ToTensor()]
-        self.mean = tuple(self.cfg['base']['means'])
-        self.image_size = self.cfg['net']['imagesize'][0]
+        self.mean = (123, 117, 104)
 
     def get_item(self, index):
         # target [[label, left, top, right, bottom]]
@@ -44,40 +50,15 @@ class YoloV1Detection(DataSetBase):
         info = self.dataset.get_item_info(index)
         target = np.asarray(target)
         if self.phase == 'train':
-            labels = torch.Tensor(target[:, 0]) + 1  # 取出来的label是0开始的，所以需要加1
-            boxes = torch.Tensor(target[:, 1:5])
-            img, boxes = random_flip(img, boxes)
-            img, boxes = randomScale(img, boxes)
-            img = randomBlur(img)
-            img = RandomBrightness(img)
-            img = RandomHue(img)
-            img = RandomSaturation(img)
-            img, boxes, labels = randomShift(img, boxes, labels)
-            img, boxes, labels = randomCrop(img, boxes, labels)
-
-            h, w, _ = img.shape
-            boxes /= torch.Tensor([w, h, w, h]).expand_as(boxes)
-            img = BGR2RGB(img)  # because pytorch pretrained model use RGB
-            img = subMean(img, self.mean)  # 减去均值
-            img = cv2.resize(img, (self.image_size, self.image_size))
-            target = self.encoder(boxes, labels).cpu().numpy()  # 7x7x30
-            for t in self.transform:
-                img = t(img)
+            self.image_size = self.cfg['train']['imagesize']
+            pass
         elif self.phase == 'eval':
-            img = cv2.resize(img, (self.image_size, self.image_size))
-            img = BGR2RGB(img)
-            img = subMean(img, self.mean)  # 减去均值
-            for t in self.transform:
-                img = t(img)
+            self.image_size = self.cfg['eval']['imagesize']
+            pass
         else:
-            h, w, _ = img.shape
-            img = cv2.resize(img, tuple(self.cfg['net']['imagesize']))
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            mean = self.mean  # RGB
-            img = img - np.array(mean, dtype=np.float32)
-
-            transform = tv.transforms.Compose([tv.transforms.ToTensor(), ])
-            img = transform(img)
+            self.image_size = self.cfg['test']['imagesize']
+            transform = BaseTransform(self.image_size[0])
+            img = torch.from_numpy(transform(img)[0][:, :, ::-1].copy()).permute(2, 0, 1)
 
         return img, target, info
 
@@ -121,7 +102,7 @@ class YoloV1Detection(DataSetBase):
         return np.stack(imgs, 0), np.stack(targets, 0), infos
 
 
-class VOCDetection(YoloV1Detection):
+class VOCDetection(YoloV2Detection):
     def __init__(self, cfg: DetectConfig, phase):
         super(VOCDetection, self).__init__(cfg, phase)
 
@@ -140,7 +121,7 @@ class VOCDetection(YoloV1Detection):
         return do_python_eval(self.cfg, infos, output_dir)
 
 
-class COCODetection(YoloV1Detection):
+class COCODetection(YoloV2Detection):
     def __init__(self, cfg: DetectConfig, phase):
         super(COCODetection, self).__init__(cfg, phase)
 

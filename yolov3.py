@@ -3,15 +3,15 @@
 @license: (C) Copyright 2017-2023
 @contact: myjjzhk@126.com
 @Software : PyCharm
-@file: train.py
-@time: 2021-11-05 20:56:41
+@file: yolov3.py
+@time: 2021-12-07 13:09:33
 @desc: 
 """
 import torch
 import argparse
 import os
 from jjzhk.config import DetectConfig
-from lib.yolov1.yolov1_solver import Yolov1Solver
+from lib.yolov3.yolov3_solver import Yolov3Solver
 
 
 if torch.cuda.is_available():
@@ -21,37 +21,36 @@ if torch.cuda.is_available():
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='Project')
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
-    parser.add_argument('-model', default='resnet', type=str, help='')
-    parser.add_argument('-datatype', default='voc', type=str, help='')
+    parser.add_argument('-model', default='spp', type=str, help='')
+    parser.add_argument('-datatype', default='coco', type=str, help='')
     parser.add_argument('-phase', default='test', type=str, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
-    parser.add_argument('-cell', default=7, type=int, help='')
     args = parser.parse_args(argv)
     return args
 
 
 if __name__ == '__main__':
     args = parse_args()
-    args.imgsize = 448
-    args.model_type = "YOLOV1"
+    args.model_type = "YOLOV3"
+
     config = DetectConfig("cfg")
     config.load_file_list([
         "%s.cfg" % args.datatype,
-        os.path.join(args.model_type, args.datatype, "yolov1_%s.cfg" % args.model),
-        "weights.cfg"
-    ])
+        "weights.cfg",
+        os.path.join(args.model_type, args.datatype, "%s_%s.cfg" % (args.model_type.lower(), args.model))])
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
-    config['net']['cell_number'] = args.cell
     config['train']['learning_rate'] = args.lr
 
     config['net']['trained_weights'] = "%s/%s/%s.pth" % (config[args.model_type]["host"], "pretrained", args.model)
-    config['net']['test_weights'] = "%s/trained_%s/%s_%s_%d.pth" % (config["YOLOV1"]["host"],
-                                                                        args.datatype,args.model_type.lower(),
-                                                                        args.model, args.cell)
-    print('model: %s, size: %d' % (args.model, args.imgsize))
+    config['net']['test_weights'] = "%s/trained_%s/%s.pth" % (config[args.model_type]["host"],
+                                                                        args.datatype,
+                                                                        args.model)
 
-    solver = Yolov1Solver(config, model_name=args.model)
+    print('model: %s' % args.model)
+
+    solver = Yolov3Solver(config, model_name=args.model)
+
     if args.phase == 'train':
         solver.train()
     elif args.phase == 'eval':
@@ -60,8 +59,4 @@ if __name__ == '__main__':
         solver.test()
     else:
         print(solver.eval_mAP(50)[0])
-
-
-
-
 

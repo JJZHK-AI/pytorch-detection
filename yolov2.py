@@ -21,9 +21,9 @@ if torch.cuda.is_available():
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='Project')
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
-    parser.add_argument('-model', default='resnet50', type=str, help='')
-    parser.add_argument('-datatype', default='coco', type=str, help='')
-    parser.add_argument('-phase', default='test', type=str, help='')
+    parser.add_argument('-model', default='darknet19', type=str, help='')
+    parser.add_argument('-datatype', default='voc', type=str, help='')
+    parser.add_argument('-phase', default='eval', type=str, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
     args = parser.parse_args(argv)
     return args
@@ -31,12 +31,12 @@ def parse_args(argv=None):
 
 if __name__ == '__main__':
     args = parse_args()
-    args.imgsize = 448
+    args.model_type = "YOLOV2"
     config = DetectConfig("cfg")
     config.load_file_list([
         "%s.cfg" % args.datatype,
         "weights.cfg",
-        os.path.join("%d" % args.imgsize, "%s" % args.datatype, "yolov2_%s.cfg" % args.model)])
+        os.path.join(args.model_type, args.datatype, "%s_%s.cfg" % (args.model_type.lower(), args.model))])
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
     config['train']['learning_rate'] = args.lr
@@ -46,7 +46,7 @@ if __name__ == '__main__':
                                                                         args.datatype,
                                                                         args.model)
 
-    print('model: %s, size: %d' % (args.model, args.imgsize))
+    print('model: %s' % (args.model))
 
     solver = Yolov2Solver(config, model_name=args.model)
 

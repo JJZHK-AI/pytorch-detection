@@ -37,7 +37,7 @@ if __name__ == '__main__':
     config.load_file_list([
         "%s.cfg" % args.datatype,
         "weights.cfg",
-        os.path.join("%d" % args.imgsize, "%s" % args.datatype, "%s" % args.model, "%s.cfg" % args.net)])
+        os.path.join(args.model.upper(), args.datatype, "%s_%d.cfg" % (args.net, args.imgsize))])
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
     config['train']['learning_rate'] = args.lr

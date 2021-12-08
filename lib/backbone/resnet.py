@@ -140,7 +140,7 @@ def resnet152(cfg: DetectConfig):
 
 @BACKBONE_ZOO.register()
 def yolov2_resnet50(cfg: DetectConfig):
-    return ResNet(cfg)
+    return ResNet(Bottleneck, [3, 4, 6, 3])
 
 
 class Resnet_Bottleneck(torch.nn.Module):

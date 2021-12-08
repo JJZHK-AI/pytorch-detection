@@ -8,12 +8,14 @@
 @desc: 
 """
 import torch.utils.data
-import numpy as np
 import torchvision as tv
+import numpy as np
 from lib.dataset.data_zoo import DATASET_ZOO
 from jjzhk.dataset import TestData, VOCData, COCOData, DataSetBase
 from jjzhk.config import DetectConfig
-from lib.yolov2.argument import BaseTransform
+from lib.yolov2.argument import BaseTransform, Compose, ConvertFromInts, ToAbsoluteCoords
+from lib.yolov2.argument import PhotometricDistort, Expand, RandomSampleCrop, RandomMirror
+from lib.yolov2.argument import ToPercentCoords, Resize, Normalize
 import os
 from lib.utils.util import write_voc_results_file, do_python_eval, write_coco_results_file, do_detection_eval
 
@@ -33,51 +35,33 @@ class YoloV2Detection(DataSetBase):
         super(YoloV2Detection, self).__init__(cfg, phase)
         self.transform = [tv.transforms.ToTensor()]
         self.mean = (123, 117, 104)
-        self.image_size = self.cfg['net']['imagesize']
+
 
     def get_item(self, index):
-        # target [[label, left, top, right, bottom]]
         img, target = self.dataset.find_item(index)
-
         info = self.dataset.get_item_info(index)
         target = np.asarray(target)
+
         if self.phase == 'train':
-            pass
+            self.image_size = self.cfg['train']['imagesize']
+            target_transform = TransformTarget()
+            target = target_transform(target, info['width'], info['height'])
+            transform = SSDAugmentation(self.image_size[0])
+            if self.transform is not None:
+                img, boxes, labels = transform(img, target[:, :4], target[:, 4])
+                img = img[:, :, (2, 1, 0)]
+                img = torch.from_numpy(img).permute(2, 0, 1).float()
+                target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
         elif self.phase == 'eval':
-            pass
+            self.image_size = self.cfg['eval']['imagesize']
+            transform = BaseTransform(self.image_size[0])
+            img = torch.from_numpy(transform(img)[0][:, :, (2, 1, 0)]).permute(2, 0, 1)
         else:
-            transform = BaseTransform(self.cfg['net']['imagesize'][0])
+            self.image_size = self.cfg['test']['imagesize']
+            transform = BaseTransform(self.image_size[0])
             img = torch.from_numpy(transform(img)[0][:, :, ::-1].copy()).permute(2, 0, 1)
-
+            target = None
         return img, target, info
-
-    # def __len__(self):
-    #     return 1
-
-    def encoder(self, boxes, labels):
-        """
-        boxes (tensor) [[x1,y1,x2,y2],[]]
-        labels (tensor) [...]
-        return 7x7x30
-        """
-        grid_num = self.cfg['net']['cell_number']
-        target = torch.zeros((grid_num, grid_num, 2 * 5 + self.cfg['dataset']['classno']))
-        cell_size = 1. / grid_num
-        wh = boxes[:, 2:] - boxes[:, :2]
-        cxcy = (boxes[:, 2:] + boxes[:, :2]) / 2
-        for i in range(cxcy.size()[0]):
-            cxcy_sample = cxcy[i]
-            ij = (cxcy_sample / cell_size).ceil() - 1  #
-            target[int(ij[1]), int(ij[0]), 4] = 1
-            target[int(ij[1]), int(ij[0]), 9] = 1
-            target[int(ij[1]), int(ij[0]), int(labels[i]) + 9] = 1
-            xy = ij * cell_size  # 匹配到的网格的左上角相对坐标
-            delta_xy = (cxcy_sample - xy) / cell_size
-            target[int(ij[1]), int(ij[0]), 2:4] = wh[i]
-            target[int(ij[1]), int(ij[0]), :2] = delta_xy
-            target[int(ij[1]), int(ij[0]), 7:9] = wh[i]
-            target[int(ij[1]), int(ij[0]), 5:7] = delta_xy
-        return target
 
     def collater(self, batch):
         targets = []
@@ -86,9 +70,9 @@ class YoloV2Detection(DataSetBase):
         for sample in batch:
             imgs.append(sample[0])
             if sample[1] is not None:
-                targets.append(sample[1])
+                targets.append(torch.FloatTensor(sample[1]))
             infos.append(sample[2])
-        return np.stack(imgs, 0), np.stack(targets, 0), infos
+        return torch.stack(imgs, 0), targets, infos
 
 
 class VOCDetection(YoloV2Detection):
@@ -136,3 +120,43 @@ class COCODetection(YoloV2Detection):
         # Only do evaluation on non-test sets
         if self.coco_name.find('test') == -1:
             return do_detection_eval(self.cfg, self.dataset.annFile, res_file)
+
+
+class SSDAugmentation(object):
+    def __init__(self, size=416, mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)):
+        self.mean = mean
+        self.mean_255 = (mean[0]*255, mean[1]*255, mean[2]*255)
+        self.size = size
+        self.std = std
+        self.augment = Compose([
+            ConvertFromInts(),
+            ToAbsoluteCoords(),
+            PhotometricDistort(),
+            Expand(self.mean_255),
+            RandomSampleCrop(),
+            RandomMirror(),
+            ToPercentCoords(),
+            Resize(self.size),
+            Normalize(self.mean, self.std)
+        ])
+
+    def __call__(self, img, boxes, labels):
+        return self.augment(img, boxes, labels)
+
+
+class TransformTarget(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, target, width, height):
+        res = []
+        boxes = target[:, 1:5]
+        for j, t in enumerate(boxes):
+            bndbox = []
+            for i, pt in enumerate(t):
+                cur_pt = pt / width if i % 2 == 0 else pt / height
+                bndbox.append(cur_pt)
+            bndbox.append(target[j][0])
+            res += [bndbox]
+        return np.asarray(res)
+
