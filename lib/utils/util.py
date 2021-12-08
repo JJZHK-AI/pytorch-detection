@@ -237,6 +237,11 @@ def do_detection_eval(cfg, annFile, res_file):
     coco_eval = COCOeval(coco, coco_dt, ann_type)
     coco_eval.evaluate()
     coco_eval.accumulate()
+
+    ap50_95, ap50 = coco_eval.stats[0], coco_eval.stats[1]
+    print('ap50_95 : ', ap50_95)
+    print('ap50 : ', ap50)
+
     return print_detection_eval_metrics(cfg, coco_eval)
 
 
