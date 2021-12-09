@@ -45,10 +45,10 @@ $300 \times 300$
 ### YOLOv2
 |            |  darknet19 | darknet19-tiny | resnet50 |
 | ---------- | :--------: | :------------: | :------: |
-|   VOC-mAP  |    🐦      | -------------- |    🐦     |
-|  VOC-Image | ![avatar](result/yolov2_voc_darknet19.jpg) | -------------- |          |
-|  COCO-mAP  |            | -------------- |          |
-| COCO-Image |            | -------------- |          |
+|   VOC-mAP  |    🐦      |       🐦        |    🐦     |
+|  VOC-Image | ![avatar](result/yolov2_voc_darknet19.jpg) | ![avatar](result/yolov2_voc_darknet_tiny.jpg) | 🐦 |
+|  COCO-mAP  |    🐦      |       🐦        |    🐦     |
+| COCO-Image | ![avatar](result/yolov2_coco_darknet19.jpg) |       🐦        |    🐦     |
 
 ### YOLOv3
 ### YOLOv4
