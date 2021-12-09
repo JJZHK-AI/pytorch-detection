@@ -30,8 +30,8 @@ $300 \times 300$
 | ---------- | :-----: | :--------: | :---------: | :---------: | :-----------: |
 |   VOC-mAP  |  77.9%  |    74.0%   |    74.1%    |    78.2%    |     73.5%     |
 |  VOC-Image | ![avatar](result/fssd_voc_vgg16_300.jpg) | ![avatar](result/fssd_voc_resnet50_300.jpg) | ![avatar](result/fssd_voc_resnet152_300.jpg) | ![avatar](result/fssd_voc_darknet19_300.jpg) | ![avatar](result/fssd_voc_mobilenetv1_300.jpg) |
-|  COCO-mAP  |         |    26.6%   |             |    25.2%    |     22.8%     |
-| COCO-Image | | ![avatar](result/fssd_coco_resnet50_300.jpg) | | ![avatar](result/fssd_coco_darknet19_300.jpg) | ![avatar](result/fssd_coco_mobilenetv1_300.jpg) |
+|  COCO-mAP  |    🐦    |    26.6%   |     🐦      |    25.2%    |     22.8%     |
+| COCO-Image | 🐦 | ![avatar](result/fssd_coco_resnet50_300.jpg) | 🐦 | ![avatar](result/fssd_coco_darknet19_300.jpg) | ![avatar](result/fssd_coco_mobilenetv1_300.jpg) |
 
 # 5.YOLO
 ### YOLOv1
