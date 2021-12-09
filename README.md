@@ -43,6 +43,13 @@ $300 \times 300$
 | COCO-Image |             |             |          |           |         |          |
 
 ### YOLOv2
+|            |  darknet19 | darknet19-tiny | resnet50 |
+| ---------- | :--------: | :------------: | :------: |
+|   VOC-mAP  |    🐦      | -------------- |    🐦     |
+|  VOC-Image | ![avatar](result/yolov2_voc_darknet19.jpg) | -------------- |          |
+|  COCO-mAP  |            | -------------- |          |
+| COCO-Image |            | -------------- |          |
+
 ### YOLOv3
 ### YOLOv4
 |            |  YOLOv4 |
