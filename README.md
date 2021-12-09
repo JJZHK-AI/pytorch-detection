@@ -37,10 +37,10 @@ $300 \times 300$
 ### YOLOv1
 |            |  Resnet50-7 | Resnet50-14 | resnet-7 | resnet-14 | vgg16-7 | vgg16-14 |
 | ---------- | :---------: | :---------: | :------: | :-------: | :-----: | :------: |
-|   VOC-mAP  |    61.1%    |     ---     |  58.4%   |           |         |          |
-|  VOC-Image | ![avatar](result/yolov1_voc_resnet50_7.jpg) | - | ![avatar](result/yolov1_voc_resnet_7.jpg) | | | |
-|  COCO-mAP  |             |             |          |           |         |          |
-| COCO-Image |             |             |          |           |         |          |
+|   VOC-mAP  |    61.1%    |      🐦     |  58.4%   |     🐦     |    🐦   |     🐦    |
+|  VOC-Image | ![avatar](result/yolov1_voc_resnet50_7.jpg) | 🐦 | ![avatar](result/yolov1_voc_resnet_7.jpg) | 🐦 | 🐦 | 🐦 |
+|  COCO-mAP  | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
+| COCO-Image | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
 
 ### YOLOv2
 |            |  darknet19 | darknet19-tiny | resnet50 |
