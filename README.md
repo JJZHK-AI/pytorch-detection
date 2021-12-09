@@ -12,8 +12,8 @@ $300 \times 300$
 | ---------- | :-----: | :--------: | :---------: | :---------: | :-----------: |
 |   VOC-mAP  |  76.5%  |    79.2%   |    73.3%    |    74.4%    |     72.9%     |
 |  VOC-Image | ![avatar](result/ssd_voc_vgg16_300.jpg) | ![avatar](result/ssd_voc_resnet50_300.jpg) | ![avatar](result/ssd_voc_resnet152_300.jpg) | ![avatar](result/ssd_voc_darknet19_300.jpg) | ![avatar](result/ssd_voc_mobilenetv1_300.jpg) |
-|  COCO-mAP  |  -----  |   25.0%    |             |    20.7%    |     18.8%     |
-| COCO-Image |         | ![avatar](result/ssd_coco_resnet50_300.jpg) | | ![avatar](result/ssd_coco_darknet19_300.jpg) | ![avatar](result/ssd_coco_mobilenetv1_300.jpg) |
+|  COCO-mAP  |    🐦    |   25.0%    |     🐦      |    20.7%    |     18.8%     |
+| COCO-Image |    🐦    | ![avatar](result/ssd_coco_resnet50_300.jpg) | 🐦 | ![avatar](result/ssd_coco_darknet19_300.jpg) | ![avatar](result/ssd_coco_mobilenetv1_300.jpg) |
 
 # 3.RFB
 $300 \times 300$
