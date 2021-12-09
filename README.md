@@ -19,10 +19,10 @@ $300 \times 300$
 $300 \times 300$
 |            |  vgg16  |  resnet50  |  resnet152  |  darknet19  |  mobilenetv1  |
 | ---------- | :-----: | :--------: | :---------: | :---------: | :-----------: |
-|   VOC-mAP  |  79.0%  |            |             |    76.2%    |     73.8%     |
+|   VOC-mAP  |  79.0%  |    🐦      |     🐦       |    76.2%    |     73.8%     |
 |  VOC-Image | ![avatar](result/rfb_voc_vgg16_300.jpg) | | | ![avatar](result/rfb_voc_darknet19_300.jpg) | ![avatar](result/rfb_voc_mobilenetv1_300.jpg) |
-|  COCO-mAP  |         |            |             |    22.4%    |     19.0%     |
-| COCO-Image |         | | | ![avatar](result/rfb_coco_darknet19_300.jpg) | ![avatar](result/rfb_coco_mobilenetv1_300.jpg) |
+|  COCO-mAP  |   🐦     |     🐦     |     🐦       |    22.4%    |     19.0%     |
+| COCO-Image |    🐦    | 🐦 | 🐦 | ![avatar](result/rfb_coco_darknet19_300.jpg) | ![avatar](result/rfb_coco_mobilenetv1_300.jpg) |
 
 # 4.FSSD
 $300 \times 300$
