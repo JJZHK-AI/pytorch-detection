@@ -397,13 +397,3 @@ def loss(pred_conf, pred_cls, pred_txtytwth, pred_iou, label):
 
     return conf_loss, cls_loss, bbox_loss, iou_loss
 
-
-if __name__ == "__main__":
-    gt_box = np.array([[0.0, 0.0, 10, 10]])
-    anchor_boxes = np.array([[0.0, 0.0, 10, 10],
-                             [0.0, 0.0, 4, 4],
-                             [0.0, 0.0, 8, 8],
-                             [0.0, 0.0, 16, 16]
-                             ])
-    iou = compute_iou(anchor_boxes, gt_box)
-    print(iou)

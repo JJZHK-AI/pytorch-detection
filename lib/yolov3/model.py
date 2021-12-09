@@ -44,40 +44,34 @@ class YOLOV3_Net(ModelBase):
         self.num_classes = self.cfg['dataset']['classno']
 
     def get_eval_predictions(self, sampler, **kwargs):
-        pass
-        # images, info = sampler[0], sampler[2]
-        # images = torch.autograd.Variable(torch.FloatTensor(images)).to(device)
-        # detections = self.model(images)
-        #
-        # result = []
-        # for detection in detections:
-        #     w, h = info['width'], info['height']
-        #     boxes, cls_indexs, probs = decoder(detection)
-        #
-        #     for i, box in enumerate(boxes):
-        #         # if cls_indexs[i] == 19:
-        #         #     print("OK")
-        #
-        #         prob = probs[i]
-        #         prob = float(prob)
-        #         if prob >= self.cfg['base']['conf_threshold']:
-        #             x1 = int(box[0] * w)
-        #             x2 = int(box[2] * w)
-        #             y1 = int(box[1] * h)
-        #             y2 = int(box[3] * h)
-        #
-        #             result.append([(x1, y1), (x2, y2), int(cls_indexs[i]), self.cfg.classname(int(cls_indexs[i])), prob])
-        #
-        # re_boxes = [[] for _ in range(len(self.cfg.class_keys()) + 1)]
-        # for (x1, y1), (x2, y2), class_id, class_name, prob in result: #image_id is actually image_path
-        #     re_boxes[class_id+1].append([x1, y1, x2, y2, prob])
-        #
-        # return re_boxes
+        images, info = sampler[0], sampler[2]
+        images = torch.autograd.Variable(torch.FloatTensor(images)).to(device)
+        bboxes, scores, cls_inds = self(images)
+
+        result = []
+        w, h = info[0]['width'], info[0]['height']
+
+        for i, box in enumerate(bboxes):
+            prob = scores[i]
+            prob = float(prob)
+            if prob >= self.cfg['base']['conf_threshold']:
+                x1 = int(box[0] * w)
+                x2 = int(box[2] * w)
+                y1 = int(box[1] * h)
+                y2 = int(box[3] * h)
+
+                result.append([(x1, y1), (x2, y2), int(cls_inds[i]), self.cfg.classname(int(cls_inds[i])), prob])
+
+        re_boxes = [[] for _ in range(len(self.cfg.class_keys()) + 1)]
+        for (x1, y1), (x2, y2), class_id, class_name, prob in result: #image_id is actually image_path
+            re_boxes[class_id+1].append([x1, y1, x2, y2, prob])
+
+        return re_boxes
 
     def get_test_predict(self, image, info, **kwargs):
         img_h, img_w = info[0]['height'], info[0]['width']
         scale = np.array([[img_w, img_h, img_w, img_h]])
-        img = torch.from_numpy(image).to(device)
+        img = image.to(device)
         bboxes, scores, cls_inds = self.forward(img, trainable=False)
         bboxes *= scale
         result = []
@@ -245,7 +239,7 @@ class YOLOV3_Darknet53(YOLOV3_Net):
     def __init__(self, cfg: DetectConfig):
         super(YOLOV3_Darknet53, self).__init__(cfg)
         self.stride = [8, 16, 32]
-        self.anchor_size = self.cfg['base']['anchors']
+        self.anchor_size = self.cfg['base']['anchors'].astype(np.float32)
         self.anchor_size = torch.tensor(self.anchor_size).view(3, len(self.anchor_size) // 3, 2)
         self.num_anchors = self.anchor_size.size(1)
         self.grid_cell, self.stride_tensor, self.all_anchors_wh = self.create_grid(self.input_size)
@@ -407,7 +401,7 @@ class YOLOV3_Tiny(YOLOV3_Net):
         super(YOLOV3_Tiny, self).__init__(cfg)
 
         self.stride = [16, 32]
-        self.anchor_size = self.cfg['base']['anchors']
+        self.anchor_size = self.cfg['base']['anchors'].astype(np.float32)
         self.anchor_size = torch.tensor(self.anchor_size).view(2, len(self.anchor_size) // 2, 2)
         self.num_anchors = self.anchor_size.size(1)
         self.grid_cell, self.stride_tensor, self.all_anchors_wh = self.create_grid(self.input_size)
@@ -535,7 +529,7 @@ class YOLOV3_Spp(YOLOV3_Net):
         super(YOLOV3_Spp, self).__init__(cfg)
 
         self.stride = [8, 16, 32]
-        self.anchor_size = self.cfg['base']['anchors']
+        self.anchor_size = self.cfg['base']['anchors'].astype(np.float32)
         self.anchor_size = torch.tensor(self.anchor_size).view(3, len(self.anchor_size) // 3, 2)
         self.num_anchors = self.anchor_size.size(1)
         self.grid_cell, self.stride_tensor, self.all_anchors_wh = self.create_grid(self.input_size)

@@ -138,14 +138,11 @@ class Yolov2Solver(Solver):
         for index, (images, target, info) in enumerate(self._train_loader_):
             self.change_lr_iter(epoch, index)
             targets = [label.tolist() for label in target]
-
-            model_name = self.cfg['net']['backbone']
-            if model_name in ['yolov2_darknet19', 'yolov2_resnet50', 'yolov2_darknet19_tiny']:
-                targets = y.gt_creator(input_size=self.cfg['train']['imagesize'][0],
-                                           stride=32,
-                                           label_lists=targets,
-                                           anchor_size=self.cfg['base']['anchors']
-                                           )
+            targets = y.gt_creator(input_size=self.cfg['train']['imagesize'][0],
+                                   stride=self.model.stride,
+                                   label_lists=targets,
+                                   anchor_size=self.cfg['base']['anchors']
+                                   )
 
             images = images.to(device)
             targets = torch.tensor(targets).float().to(device)

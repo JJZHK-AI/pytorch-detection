@@ -21,9 +21,9 @@ if torch.cuda.is_available():
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='Project')
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
-    parser.add_argument('-model', default='spp', type=str, help='')
-    parser.add_argument('-datatype', default='coco', type=str, help='')
-    parser.add_argument('-phase', default='test', type=str, help='')
+    parser.add_argument('-model', default='darknet53', type=str, help='')
+    parser.add_argument('-datatype', default='voc', type=str, help='')
+    parser.add_argument('-phase', default='train', type=str, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
     args = parser.parse_args(argv)
     return args

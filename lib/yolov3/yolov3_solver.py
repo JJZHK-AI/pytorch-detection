@@ -7,6 +7,7 @@
 @time: 2021-11-10 11:13:20
 @desc: 
 """
+from lib.utils.eval import EvalObj
 import torch
 import torch.utils.data
 import os
@@ -15,6 +16,8 @@ import lib.model as m
 from lib.utils.solver import Solver
 from jjzhk.drawseg import BaseDrawSeg
 from jjzhk.progressbar import ProgressBar
+import lib.yolov2 as y
+
 
 
 class Yolov3Solver(Solver):
@@ -71,19 +74,18 @@ class Yolov3Solver(Solver):
 
     def eval_epoch(self, epoch, model):
         self.model.set_grid(self.cfg['eval']['imagesize'][0])
-        pass
-        # eval_model = y.YOLOV1Eval(self.cfg, model)
-        #
-        # mAP, info = eval_model.calculateMAP(self._eval_loader_,
-        #                                     os.path.join(self._eval_path_, str(epoch)))
-        # self.logger.save_eval(epoch, mAP)
-        #
-        # headers = ['class name', 'AP']
-        # table = []
-        # for i, cls_name in enumerate(self.cfg.class_keys()):
-        #     table.append([cls_name, info[cls_name]])
-        #
-        # self.logger.save_eval_txt_file(epoch, table, headers)
+        eval_model = EvalObj(self.cfg, model)
+
+        mAP, info = eval_model.calculateMAP(self._eval_loader_,
+                                            os.path.join(self._eval_path_, str(epoch)))
+        self.logger.save_eval(epoch, mAP)
+
+        headers = ['class name', 'AP']
+        table = []
+        for i, cls_name in enumerate(self.cfg.class_keys()):
+            table.append([cls_name, info[cls_name]])
+
+        self.logger.save_eval_txt_file(epoch, table, headers)
 
     def get_train_parameters(self) -> list:
         params = []
@@ -103,44 +105,65 @@ class Yolov3Solver(Solver):
         pass
 
     def change_lr(self, max_epochs, current_epoch, lr) -> float:
-        lt = [int(ele.replace('scheduler_', '')) for ele in self.cfg['train'].keys() if ele.startswith('scheduler_')]
-        lt = sorted(lt)
+        base_lr = self.cfg['train']['learning_rate']
+        tmp_lr = base_lr
+        lr_epoch = self.cfg['train']['lr_epoch']
+        lr_epoch = [int(x) for x in lr_epoch.split(',')]
 
-        learning_rate = lr
+        if current_epoch in lr_epoch:
+            tmp_lr = tmp_lr * 0.1
+            for param_group in self._optimizer_.param_groups:
+                param_group['lr'] = tmp_lr
 
-        if current_epoch in lt:
-            learning_rate = self.cfg['train']['scheduler_%d' % current_epoch]
+        return tmp_lr
 
-        # if current_epoch == 30:
-        #     learning_rate = 0.0001
-        # if current_epoch == 40:
-        #     learning_rate = 0.00001
-
-        for param_group in self._optimizer_.param_groups:
-            param_group['lr'] = lr
-
-        return learning_rate
+    def change_lr_iter(self, current_epoch, iter_index):
+        wp_epoch = self.cfg['train']['wp_epoch']
+        base_lr = self.cfg['train']['learning_rate']
+        epoch_size = len(self._train_dataset_) // (self.cfg['train']['batch_size'] * 1)
+        if current_epoch < wp_epoch:
+            tmp_lr = base_lr * pow((iter_index+ current_epoch * epoch_size)*1. / (wp_epoch * epoch_size), 4)
+            for param_group in self._optimizer_.param_groups:
+                param_group['lr'] = tmp_lr
+        elif current_epoch == wp_epoch and iter_index == 0:
+            tmp_lr = base_lr
+            for param_group in self._optimizer_.param_groups:
+                param_group['lr'] = tmp_lr
 
     def train_epoch(self, epoch, bar, newir) -> tuple:
         avg_loss = 0
         time = 0
         index = 0
         self.model.set_grid(self.cfg['train']['imagesize'][0])
-
         for index, (images, target, info) in enumerate(self._train_loader_):
-            images = torch.autograd.Variable(torch.FloatTensor(images)).to(device)
-            target = torch.autograd.Variable(torch.FloatTensor(target)).to(device)
-            # images, target = images.to(device), target.to(device)
+            self.change_lr_iter(epoch, index)
+            targets = [label.tolist() for label in target]
 
-            pred = self.model(images)
-            loss = self._criterion_(pred, target)
-            avg_loss += loss.item()
+            targets = y.multi_gt_creator(input_size=self.cfg['train']['imagesize'][0],
+                                         strides=self.model.stride,
+                                         label_lists=targets,
+                                         anchor_size=self.cfg['base']['anchors'])
 
-            self._optimizer_.zero_grad()
-            loss.backward()
+            images = images.to(device)
+            targets = torch.tensor(targets).float().to(device)
+
+            conf_loss, cls_loss, box_loss, iou_loss = self.model(images, target=targets, trainable=True)
+
+            # compute loss
+            total_loss = conf_loss + cls_loss + box_loss + iou_loss
+
+            avg_loss += total_loss.item()
+
+            # check NAN for loss
+            if torch.isnan(total_loss):
+                continue
+
+            # backprop
+            total_loss.backward()
             self._optimizer_.step()
+            self._optimizer_.zero_grad()
 
-            time = bar.show(epoch, loss.item(), avg_loss / (index + 1), newir)
+            time = bar.show(epoch, total_loss.item(), avg_loss / (index + 1), newir)
 
         return avg_loss / (index + 1), time
     #endregion
