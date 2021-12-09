@@ -51,6 +51,13 @@ $300 \times 300$
 | COCO-Image | ![avatar](result/yolov2_coco_darknet19.jpg) |       🐦        |    🐦     |
 
 ### YOLOv3
+|            |  darknet53 |    tiny    |   spp   |
+| ---------- | :--------: | :--------: | :-----: |
+|   VOC-mAP  |    🐦      |     🐦      |   🐦    |
+|  VOC-Image | ![avatar](result/yolov3_voc_darknet53.jpg) | ![avatar](result/yolov3_voc_tiny.jpg) | 🐦 |
+|  COCO-mAP  |    🐦      |       🐦        |    🐦     |
+| COCO-Image | ![avatar](result/yolov3_coco_darknet53.jpg) | ![avatar](result/yolov3_coco_tiny.jpg) | ![avatar](result/yolov3_coco_spp.jpg) |
+
 ### YOLOv4
 |            |  YOLOv4 |
 | ---------- | :-----: |
