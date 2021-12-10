@@ -64,6 +64,6 @@ $300 \times 300$
 |   VOC-mAP  | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
 |  VOC-Image | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
 |  COCO-mAP  | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
-| COCO-Image | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
+| COCO-Image | ![avatar](result/yolov4_coco_darknet.jpg) | ![avatar](result/yolov4_coco_pacsp.jpg) | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
 
 ### YOLOv5

@@ -20,7 +20,6 @@ class Darknet(ModelBase):
     def __init__(self, cfg: DetectConfig):
         super(Darknet, self).__init__(cfg)
         self.module_defs = self.cfg['backbone']
-        self.backbone = get_backbone(cfg)
         self.module_list, self.routs = \
             create_modules(self.module_defs, cfg)
         self.module_list = torch.nn.ModuleList(self.module_list)
