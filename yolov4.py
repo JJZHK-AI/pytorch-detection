@@ -14,7 +14,6 @@ from jjzhk.config import DetectConfig
 from lib.yolov4.yolov4_solver import YOLOV4Solver
 import torchvision as tv
 
-
 if torch.cuda.is_available():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
@@ -22,9 +21,9 @@ if torch.cuda.is_available():
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='Project')
     parser.add_argument('-dataroot', default='/Users/JJZHK/data/', type=str, help='')
-    parser.add_argument('-model', default='darknet', type=str, help='')
+    parser.add_argument('-model', default='yolov4', type=str, help='')
     parser.add_argument('-datatype', default='coco', type=str, help='')
-    parser.add_argument('-net', default='yolov4', type=str, help='')
+    parser.add_argument('-net', default='darknet', type=str, help='')
     parser.add_argument('-phase', default='test', type=str, help='')
     parser.add_argument('-imgsize', default=608, type=int, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
@@ -34,21 +33,22 @@ def parse_args(argv=None):
 
 if __name__ == '__main__':
     args = parse_args()
+
     config = DetectConfig("cfg")
     config.load_file_list([
         "%s.cfg" % args.datatype,
         "weights.cfg",
-        os.path.join("%d" % args.imgsize, "%s" % args.datatype, "%s.cfg" % args.net)])
-    config.load_backbone_file(os.path.join("backbone", "%s.cfg" % args.net))
+        os.path.join(args.model.upper(), args.datatype, "%s.cfg" % args.net )])
+    config.load_backbone_file(os.path.join("backbone", "%s-%s.cfg" % (args.model, args.net)))
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT
     config['base']['backbone'] = args.net
     config['train']['learning_rate'] = args.lr
-    config['net']['test_weights'] = "%s/trained_%s/%s.pth" % (config["YOLOV4"]["host"], args.datatype, "yolov4")
+    config['net']['test_weights'] = "%s/trained_%s/%s.pth" % (config[args.model.upper()]["host"], args.datatype, args.net)
 
     print('model: %s, backbone: %s, size: %d' % (args.model, args.net, args.imgsize))
 
-    solver = YOLOV4Solver(config, model_name=args.model)
+    solver = YOLOV4Solver(config, model_name=args.net)
 
     if args.phase == 'train':
         solver.train()

@@ -14,7 +14,7 @@ import lib.yolov3.tools as tools
 import numpy as np
 from jjzhk.device import device
 from lib.backbone.backbone_layer import get_backbone
-from model.base import ModelBase
+from lib.model.base import ModelBase
 import torch.nn.functional as F
 
 

@@ -10,6 +10,7 @@
 import numpy as np
 import math
 import torch
+import torch.nn.functional as F
 from jjzhk.config import DetectConfig
 from lib.yolov4.layers import Swish, Mish, FeatureConcat, WeightedFeatureFusion, YOLOLayer
 from lib.yolov4.layers import MixConv2d, DeformConv2d, GAP, Silence, ScaleChannel, ScaleSpatial
@@ -37,9 +38,9 @@ def create_modules(module_defs, cfg: DetectConfig):
             if isinstance(k, int):  # single-size conv
                 modules.add_module('Conv2d', torch.nn.Conv2d(in_channels=output_filters[-1],
                                                        out_channels=filters,
-                                                       kernel_size=k,
-                                                       stride=stride,
-                                                       padding=k // 2 if mdef['pad'] else 0,
+                                                       kernel_size=(k, k),
+                                                       stride=(stride, stride),
+                                                       padding=(k // 2 if mdef['pad'] else 0, k // 2 if mdef['pad'] else 0),
                                                        groups=mdef['groups'] if 'groups' in mdef else 1,
                                                        bias=not bn))
             else:  # multiple-size conv
@@ -61,7 +62,7 @@ def create_modules(module_defs, cfg: DetectConfig):
             elif mdef['activation'] == 'mish':
                 modules.add_module('activation', Mish())
             elif mdef['activation'] == 'emb':
-                modules.add_module('activation', torch.nn.functional.normalize())
+                modules.add_module('activation', F.normalize())
             elif mdef['activation'] == 'logistic':
                 modules.add_module('activation', torch.nn.Sigmoid())
             elif mdef['activation'] == 'silu':
@@ -263,9 +264,6 @@ def create_modules(module_defs, cfg: DetectConfig):
     return module_list, routs_binary
 
 
-
-
-
 def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, classes=None, agnostic=False):
     """Performs Non-Maximum Suppression (NMS) on inference results
     Returns:
@@ -351,6 +349,7 @@ def xywh2xyxy(x):
     y[:, 3] = x[:, 1] + x[:, 3] / 2  # bottom right y
     return y
 
+
 def xyxy2xywh(x):
     # Convert nx4 boxes from [x1, y1, x2, y2] to [x, y, w, h] where xy1=top-left, xy2=bottom-right
     y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
@@ -359,6 +358,7 @@ def xyxy2xywh(x):
     y[:, 2] = x[:, 2] - x[:, 0]  # width
     y[:, 3] = x[:, 3] - x[:, 1]  # height
     return y
+
 
 def box_iou(box1, box2):
     # https://github.com/pytorch/vision/blob/master/torchvision/ops/boxes.py
@@ -416,8 +416,8 @@ def scale_img(img, ratio=1.0, same_shape=False):  # img(16,3,256,416), r=ratio
     else:
         h, w = img.shape[2:]
         s = (int(h * ratio), int(w * ratio))  # new size
-        img = torch.nn.functional.interpolate(img, size=s, mode='bilinear', align_corners=False)  # resize
+        img = F.interpolate(img, size=s, mode='bilinear', align_corners=False)  # resize
         if not same_shape:  # pad/crop img
             gs = 32  # (pixels) grid size
             h, w = [math.ceil(x * ratio / gs) * gs for x in (h, w)]
-        return torch.nn.functional.pad(img, [0, w - s[1], 0, h - s[0]], value=0.447)  # value = imagenet mean
+        return F.pad(img, [0, w - s[1], 0, h - s[0]], value=0.447)  # value = imagenet mean

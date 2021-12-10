@@ -7,72 +7,27 @@
 @time: 2021-09-27 11:31:31
 @desc: 
 """
-from pathlib import Path
-import numpy as np
+from jjzhk.device import device
+from jjzhk.config import DetectConfig
 from lib.yolov4.utils import scale_img, create_modules
 import torch
+from lib.backbone.backbone_layer import get_backbone
+from lib.yolov4.utils import non_max_suppression, scale_coords
+from lib.model.base import ModelBase
 
 
-class Darknet(torch.nn.Module):
-    def __init__(self, cfg):
-        super(Darknet, self).__init__()
-        self.cfg = cfg
+class Darknet(ModelBase):
+    def __init__(self, cfg: DetectConfig):
+        super(Darknet, self).__init__(cfg)
         self.module_defs = self.cfg['backbone']
+        self.backbone = get_backbone(cfg)
         self.module_list, self.routs = \
             create_modules(self.module_defs, cfg)
         self.module_list = torch.nn.ModuleList(self.module_list)
-        # self.module_list, self.routs = create_modules(self.module_defs, 640, self.cfg['backbone'])
 
-    def load_darknet_weights(self, weights, cutoff=-1):
-        # Parses and loads the weights stored in 'weights'
-
-        # Establish cutoffs (load layers between 0 and cutoff. if cutoff = -1 all are loaded)
-        file = Path(weights).name
-        if file == 'darknet53.conv.74':
-            cutoff = 75
-        elif file == 'yolov3-tiny.conv.15':
-            cutoff = 15
-
-        # Read weights file
-        with open(weights, 'rb') as f:
-            # Read Header https://github.com/AlexeyAB/darknet/issues/2914#issuecomment-496675346
-            self.version = np.fromfile(f, dtype=np.int32, count=3)  # (int32) version info: major, minor, revision
-            self.seen = np.fromfile(f, dtype=np.int64, count=1)  # (int64) number of images seen during training
-
-            weights = np.fromfile(f, dtype=np.float32)  # the rest are weights
-
-        ptr = 0
-        for i, (mdef, module) in enumerate(zip(self.module_defs[:cutoff], self.module_list[:cutoff])):
-            if mdef['type'] == 'convolutional':
-                conv = module[0]
-                if mdef['batch_normalize']:
-                    # Load BN bias, weights, running mean and running variance
-                    bn = module[1]
-                    nb = bn.bias.numel()  # number of biases
-                    # Bias
-                    bn.bias.data.copy_(torch.from_numpy(weights[ptr:ptr + nb]).view_as(bn.bias))
-                    ptr += nb
-                    # Weight
-                    bn.weight.data.copy_(torch.from_numpy(weights[ptr:ptr + nb]).view_as(bn.weight))
-                    ptr += nb
-                    # Running Mean
-                    bn.running_mean.data.copy_(torch.from_numpy(weights[ptr:ptr + nb]).view_as(bn.running_mean))
-                    ptr += nb
-                    # Running Var
-                    bn.running_var.data.copy_(torch.from_numpy(weights[ptr:ptr + nb]).view_as(bn.running_var))
-                    ptr += nb
-                else:
-                    # Load conv. bias
-                    nb = conv.bias.numel()
-                    conv_b = torch.from_numpy(weights[ptr:ptr + nb]).view_as(conv.bias)
-                    conv.bias.data.copy_(conv_b)
-                    ptr += nb
-                # Load conv. weights
-                nw = conv.weight.numel()  # number of weights
-                conv.weight.data.copy_(torch.from_numpy(weights[ptr:ptr + nw]).view_as(conv.weight))
-                ptr += nw
-
-    def forward(self, x, augment=False, verbose=False):
+    def forward(self, x, **kwargs):
+        augment = kwargs.get('augment')
+        verbose = kwargs.get('verbose')
         if not augment:
             return self.forward_once(x)
         else:  # Augment images (inference and test only) https://github.com/ultralytics/yolov3/issues/931
@@ -152,7 +107,69 @@ class Darknet(torch.nn.Module):
             return x, p
 
     def summary(self):
-        print(self.model_summary)
         for index, layer in enumerate(self.module_list):
             print("%d %s" % (index, layer))
+
+    def get_eval_predictions(self, sampler, **kwargs):
+        pass
+        # images, info = sampler[0], sampler[2]
+        # images = torch.autograd.Variable(torch.FloatTensor(images)).to(device)
+        # bboxes, scores, cls_inds = self(images)
+        #
+        # result = []
+        # w, h = info[0]['width'], info[0]['height']
+        #
+        # for i, box in enumerate(bboxes):
+        #     prob = scores[i]
+        #     prob = float(prob)
+        #     if prob >= self.cfg['base']['conf_threshold']:
+        #         x1 = int(box[0] * w)
+        #         x2 = int(box[2] * w)
+        #         y1 = int(box[1] * h)
+        #         y2 = int(box[3] * h)
+        #
+        #         result.append([(x1, y1), (x2, y2), int(cls_inds[i]), self.cfg.classname(int(cls_inds[i])), prob])
+        #
+        # re_boxes = [[] for _ in range(len(self.cfg.class_keys()) + 1)]
+        # for (x1, y1), (x2, y2), class_id, class_name, prob in result: #image_id is actually image_path
+        #     re_boxes[class_id+1].append([x1, y1, x2, y2, prob])
+        #
+        # return re_boxes
+
+    def get_test_predict(self, image, info, **kwargs):
+        img = image.to(device)
+        img = img.float()  # uint8 to fp16/32
+        img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0)
+        pred = self(img, augment=False)[0]
+        pred = non_max_suppression(pred, self.cfg['base']['conf_threshold'],
+                                     self.cfg['base']['iou_threshold'],
+                                     classes=None, agnostic=False)
+
+        result = []
+        for i, det in enumerate(pred):
+            if det is not None and len(det):
+                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], (info['height'].item(), info['width'].item(), 3)).round()
+                for c in det[:, -1].unique():
+                    n = (det[:, -1] == c).sum()
+
+                for *xyxy, conf, cls in det:
+                    result.append(
+                        [
+                            (xyxy[0].item(), xyxy[1].item()),
+                            (xyxy[2].item(), xyxy[3].item()),
+                            self.cfg.classname(int(cls)),
+                            "", conf.item()
+                        ]
+                    )
+
+        return result
+
+    def load_init_weights(self, weights):
+        # for k in weights.keys():
+        #     print(k, weights[k].shape)
+        self.load_state_dict(weights)
+
+
 

@@ -16,7 +16,7 @@ import lib.model as m
 from lib.utils.solver import Solver
 from jjzhk.drawseg import BaseDrawSeg
 from jjzhk.progressbar import ProgressBar
-import lib.yolov2 as y
+import lib.yolov3 as y
 
 
 

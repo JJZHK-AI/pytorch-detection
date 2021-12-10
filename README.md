@@ -59,11 +59,11 @@ $300 \times 300$
 | COCO-Image | ![avatar](result/yolov3_coco_darknet53.jpg) | ![avatar](result/yolov3_coco_tiny.jpg) | ![avatar](result/yolov3_coco_spp.jpg) |
 
 ### YOLOv4
-|            |  YOLOv4 |
-| ---------- | :-----: |
-|   VOC-mAP  |         |
-|  VOC-Image |         |
-|  COCO-mAP  |         |
-| COCO-Image | ![avatar](result/yolov4_voc_608.jpg) |
+|            |  darknet | pacsp | pacsp-mish | pacsp-s | pacsp-s-mish | pacsp-x | pacsp-x-mish | paspp | tiny |
+| ---------- | :------: | :---: | :--------: | :-----: | :----------: | :-----: | :----------: | :---: | :--: |
+|   VOC-mAP  | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
+|  VOC-Image | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
+|  COCO-mAP  | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
+| COCO-Image | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 | 🐦 |
 
 ### YOLOv5
