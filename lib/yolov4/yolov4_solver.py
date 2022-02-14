@@ -123,7 +123,37 @@ class YOLOV4Solver(Solver):
         self.logger.save_eval(0, map)
 
     def get_train_parameters(self) -> list:
-        pass
+        pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
+        for k, v in dict(self.model.named_parameters()).items():
+            if '.bias' in k:
+                pg2.append(v)  # biases
+            elif 'Conv2d.weight' in k:
+                pg1.append(v)  # apply weight_decay
+            elif 'm.weight' in k:
+                pg1.append(v)  # apply weight_decay
+            elif 'w.weight' in k:
+                pg1.append(v)  # apply weight_decay
+            else:
+                pg0.append(v)  # all else
+
+        return pg0
+
+    def after_optimizer(self):
+        pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
+        for k, v in dict(self.model.named_parameters()).items():
+            if '.bias' in k:
+                pg2.append(v)  # biases
+            elif 'Conv2d.weight' in k:
+                pg1.append(v)  # apply weight_decay
+            elif 'm.weight' in k:
+                pg1.append(v)  # apply weight_decay
+            elif 'w.weight' in k:
+                pg1.append(v)  # apply weight_decay
+            else:
+                pg0.append(v)  # all else
+
+        self._optimizer_.add_param_group({'params': pg1, 'weight_decay': self.cfg['train']['weight_decay']})  # add pg1 with weight_decay
+        self._optimizer_.add_param_group({'params': pg2})  # add pg2 (biases)
 
     def get_loss(self):
         pass

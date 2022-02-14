@@ -8,15 +8,38 @@
 @desc:
 """
 import torch
-import torchvision as tv
+from jjzhk.config import DetectConfig
+import os
+from jjzhk.drawseg import BaseDrawSeg
+config = DetectConfig("cfg")
+config.load_file_list([
+    "%s.cfg" % "coco"
+])
+image_path = os.path.join(config['dataset']['test_root'], "Images")
+model = torch.hub.load('ultralytics/yolov5', 'yolov5l')  # or yolov5m, yolov5l, yolov5x, custom
 
-model = tv.models.vgg19_bn(pretrained=True)
-image = torch.zeros(1, 3, 448, 448)
-output = model.features(image)
-print(output.shape) # 1, 512, 14, 14
-output = model.avgpool(output)
-print(output.shape) # 1, 512, 7, 7
+draw = BaseDrawSeg(cfg=config, output=os.path.join("output"))
+list = sorted(os.listdir(image_path))
+for file in list:
+    if file.endswith(".jpg"):
+        print(os.path.join(image_path, file))
+        results = model(os.path.join(image_path, file))
+        bbox = []
+        for box in results.pred[0].numpy():
+            prob = box[4]
+            if prob > 0.5:
+                bbox.append([
+                    (box[0], box[1]), (box[2], box[3]),
+                    config.classname((int)(box[5])),
+                                "",prob
+                ])
+                print(config.classname((int)(box[5])))
 
+        image = draw.draw_image(param={
+                        "Image": os.path.join(image_path, file),
+                        "Boxes": bbox,
+                        "ImageName": file.split('.')[0]
+                    }, draw_type=0)
 
 
 

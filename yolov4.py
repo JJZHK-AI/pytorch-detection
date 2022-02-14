@@ -24,7 +24,7 @@ def parse_args(argv=None):
     parser.add_argument('-model', default='yolov4', type=str, help='')
     parser.add_argument('-datatype', default='coco', type=str, help='')
     parser.add_argument('-net', default='darknet', type=str, help='')
-    parser.add_argument('-phase', default='test', type=str, help='')
+    parser.add_argument('-phase', default='eval', type=str, help='')
     parser.add_argument('-imgsize', default=608, type=int, help='')
     parser.add_argument('-lr',default=0.001, type=float, help='')
     args = parser.parse_args(argv)
@@ -33,12 +33,13 @@ def parse_args(argv=None):
 
 if __name__ == '__main__':
     args = parse_args()
+    args.model_type = "YOLOV4"
 
     config = DetectConfig("cfg")
     config.load_file_list([
         "%s.cfg" % args.datatype,
         "weights.cfg",
-        os.path.join(args.model.upper(), args.datatype, "%s.cfg" % args.net )])
+        os.path.join(args.model_type, args.datatype, "%s.cfg" % args.net)])
     config.load_backbone_file(os.path.join("backbone", "%s-%s.cfg" % (args.model, args.net)))
 
     config['dataset']['root'] = os.path.join(args.dataroot, config['dataset']['root'])  # DATA_ROOT

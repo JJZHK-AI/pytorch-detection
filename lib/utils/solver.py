@@ -130,6 +130,8 @@ class Solver(object):
             raise ValueError("Expected optimizer method in [sgd, adam, adadelta, rmsprop], but received "
                              "{}".format(opt_lower))
 
+        self.after_optimizer()
+
         return optimizer
 
     def _get_loss_(self):
@@ -156,7 +158,7 @@ class Solver(object):
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
                                                                    T_max=self.cfg['train']['max_epochs'])
         elif self.cfg['train']['scheduler'] == 'LambdaLR':
-            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, self.burnin_schedule)
+            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, self.cfg['train']['burnin_schedule'])
         elif self.cfg['train']['scheduler'] == 'reducelr':
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
         else:
@@ -253,6 +255,9 @@ class Solver(object):
         pass
 
     def get_train_parameters(self) -> list:
+        pass
+
+    def after_optimizer(self):
         pass
 
     def get_loss(self):
